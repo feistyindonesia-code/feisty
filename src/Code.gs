@@ -136,7 +136,7 @@ function setupSheets() {
     sh.appendRow(['enable_cod', 'true', new Date()]);
     sh.appendRow(['enable_qris', 'false', new Date()]);
     sh.appendRow(['enable_ipaymu', 'true', new Date()]);
-    sh.appendRow(['base_url', 'https://yourfeisty.com', new Date()]);
+    sh.appendRow(['base_url', 'https://feisty.my.id', new Date()]);
     sh.appendRow(['maintenance_mode', 'false', new Date()]);
   }
   
@@ -1787,8 +1787,8 @@ function createStripePayment(orderId, amount, customer_email) {
         quantity: 1
       }],
       mode: 'payment',
-      success_url: getAPIKey('base_url', 'https://example.com') + '/success?session_id={CHECKOUT_SESSION_ID}',
-      cancel_url: getAPIKey('base_url', 'https://example.com') + '/cancel',
+      success_url: getAPIKey('base_url', 'https://feisty.my.id') + '/success?session_id={CHECKOUT_SESSION_ID}',
+      cancel_url: getAPIKey('base_url', 'https://feisty.my.id') + '/cancel',
       customer_email: sanitizeString(customer_email, 100)
     };
 
