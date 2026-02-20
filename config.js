@@ -5,7 +5,7 @@
 
 const FeistyConfig = {
     // Default values - bisa diubah di admin panel
-    GAS_URL: localStorage.getItem('feisty_gas_url') || 'https://script.google.com/macros/s/1u1Xbp18VSwWyUkWqNugT4rlVW2us64YlBia9Pr2NAiL6jCnPHqgE-S5h/exec',
+    GAS_URL: localStorage.getItem('feisty_gas_url') || 'https://script.google.com/macros/s/AKfycbyA8qkqtHmdPsKNKvEg8CbLzw7re0G56CMTmlYMTWgsyuOq2V0S3zIUvue4NQtoiGOH/exec',
     SPREADSHEET_ID: localStorage.getItem('feisty_spreadsheet_id') || '1awdtyC3VsPX50xj8LKLk2LbNM7CNuCEv1jL1UbwLbXo',
     GEMINI_KEY: localStorage.getItem('feisty_gemini_key') || '',
     WHATSAPP_URL: localStorage.getItem('feisty_whatsapp_url') || 'https://api.whacenter.com',
