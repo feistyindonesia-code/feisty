@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesan Menu Online - Feisty</title>
+    <meta name="description" content="Pesan makanan berkualitas dari Feisty dengan mudah. Pilih menu, tambah ke keranjang, dan checkout dengan aman.">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .nav-back {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 15px;
+            transition: opacity 0.3s;
+        }
+
+        .nav-back:hover {
+            opacity: 0.8;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .menu-section {
+            flex: 1;
+        }
+
+        .category {
+            margin-bottom: 30px;
+        }
+
+        .category-title {
+            background: #667eea;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .menu-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .menu-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .menu-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .menu-item-image {
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+        }
+
+        .menu-item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .menu-item-content {
+            padding: 15px;
+        }
+
+        .menu-item-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .menu-item-desc {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .menu-item-price {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .price {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .original-price {
+            font-size: 0.9em;
+            color: #999;
+            text-decoration: line-through;
+        }
+
+        .discount-badge {
+            background: #ff6b6b;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .quantity-control button {
+            background: #667eea;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .quantity-control button:hover {
+            background: #764ba2;
+        }
+
+        .quantity-control input {
+            width: 50px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+
+        .add-to-cart-btn {
+            width: 100%;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .add-to-cart-btn:hover {
+            background: #764ba2;
+        }
+
+        .cart-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .cart-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .cart-empty {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+        }
+
+        .cart-items {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .cart-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #667eea;
+        }
+
+        .cart-item-info {
+            flex: 1;
+        }
+
+        .cart-item-name {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .cart-item-price {
+            color: #667eea;
+            font-size: 0.9em;
+        }
+
+        .cart-item-qty {
+            background: #f0f0f0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            margin: 0 10px;
+        }
+
+        .cart-item-remove {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .cart-summary {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .summary-row.total {
+            border-bottom: 2px solid #667eea;
+            border-top: 2px solid #667eea;
+            margin-top: 10px;
+            padding-top: 10px;
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        .customer-form {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .form-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 1em;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="nav-back">← Kembali ke Beranda</a>
+            <h1>🍽️ Feisty</h1>
+            <p>Pesan Menu Favorit Anda Sekarang!</p>
+        </header>
+
+        <div class="content">
+            <div class="menu-section">
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading menu...</p>
+                </div>
+                <div id="menuContainer"></div>
+            </div>
+
+            <div class="cart-section">
+                <div class="cart-title">🛒 Keranjang Pesanan</div>
+                <div id="cartContent" class="cart-items">
+                    <div class="cart-empty">Belum ada item</div>
+                </div>
+
+                <div id="cartSummary" class="cart-summary" style="display:none;">
+                    <div class="summary-row">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">Rp 0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Ongkir:</span>
+                        <span id="shippingCost">Rp 0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Diskon:</span>
+                        <span id="discount">Rp 0</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total:</span>
+                        <span id="total">Rp 0</span>
+                    </div>
+                </div>
+
+                <div class="customer-form">
+                    <div class="form-title">📋 Data Pengiriman</div>
+                    <div id="alert"></div>
+
+                    <div class="form-group">
+                        <label>Nama Lengkap *</label>
+                        <input type="text" id="customerName" placeholder="Masukkan nama Anda" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nomor WhatsApp *</label>
+                        <input type="tel" id="customerPhone" placeholder="628xxxxxxxxx" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email (untuk notifikasi pembayaran)</label>
+                        <input type="email" id="customerEmail" placeholder="email@example.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Alamat Lengkap *</label>
+                        <textarea id="customerAddress" placeholder="Jalan, Nomor, Kecamatan, Kota" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Metode Pembayaran *</label>
+                        <select id="paymentMethod" required>
+                            <option value="">-- Pilih Metode --</option>
+                            <option value="QRIS">QRIS</option>
+                            <option value="Card">Kartu Kredit (Midtrans)</option>
+                            <option value="COD">COD (Bayar di Tempat)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Catatan (Opsional)</label>
+                        <textarea id="orderNote" placeholder="Contoh: Nasi tidak pakai kecap"></textarea>
+                    </div>
+
+                    <button class="submit-btn" id="submitBtn" onclick="submitOrder()">Pesan Sekarang</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        // Configuration
+        const GAS_URL = FeistyConfig.GAS_URL;
+        const params = new URLSearchParams(window.location.search);
+        const customerName = params.get('name') || '';
+        const customerPhone = params.get('phone') || '';
+
+        let cart = [];
+        let menuData = [];
+        let config = {};
+
+        // Cart persistence
+        function saveCartToLocalStorage() {
+            try {
+                localStorage.setItem('feisty_cart', JSON.stringify(cart));
+            } catch (err) {
+                console.log('Error saving cart:', err);
+            }
+        }
+
+        function restoreCartFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('feisty_cart');
+                if (saved) {
+                    cart = JSON.parse(saved);
+                    updateCart();
+                    return true;
+                }
+            } catch (err) {
+                console.log('Error restoring cart:', err);
+            }
+            return false;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (customerName) document.getElementById('customerName').value = decodeURIComponent(customerName);
+            if (customerPhone) document.getElementById('customerPhone').value = decodeURIComponent(customerPhone);
+            
+            loadMenu();
+            loadConfig();
+            restoreCartFromLocalStorage(); // Restore cart if exists
+        });
+
+        function loadMenu() {
+            fetch(`${GAS_URL}?action=getMenu`)
+                .then(r => r.json())
+                .then(data => {
+                    menuData = data;
+                    renderMenu();
+                    document.getElementById('loading').style.display = 'none';
+                })
+                .catch(err => {
+                    console.error('Error loading menu:', err);
+                    document.getElementById('menuContainer').innerHTML = '<p style="color:red">Error loading menu</p>';
+                    document.getElementById('loading').style.display = 'none';
+                });
+        }
+
+        function loadConfig() {
+            fetch(`${GAS_URL}?action=getConfig`)
+                .then(r => r.json())
+                .then(data => {
+                    config = data;
+                })
+                .catch(err => console.error('Error loading config:', err));
+        }
+
+        function renderMenu() {
+            const grouped = {};
+            menuData.forEach(item => {
+                if (!grouped[item.kategori]) grouped[item.kategori] = [];
+                grouped[item.kategori].push(item);
+            });
+
+            let html = '';
+            Object.keys(grouped).forEach(cat => {
+                html += `<div class="category">
+                    <div class="category-title">📂 ${cat}</div>
+                    <div class="menu-items">
+                        ${grouped[cat].map(item => `
+                            <div class="menu-item">
+                                <div class="menu-item-image">
+                                    ${item.gambar ? `<img loading="lazy" src="${item.gambar}" alt="${item.nama}" onerror="this.innerHTML='🍽️'">` : '🍽️'}
+                                </div>
+                                <div class="menu-item-content">
+                                    <div class="menu-item-name">${item.nama}</div>
+                                    <div class="menu-item-desc">${item.deskripsi}</div>
+                                    <div class="menu-item-price">
+                                        <div>
+                                            <span class="price">Rp ${item.harga_diskon.toLocaleString('id-ID')}</span>
+                                            ${item.harga_asli > item.harga ? `<div class="original-price">Rp ${item.harga_asli.toLocaleString('id-ID')}</div>` : ''}
+                                        </div>
+                                        ${item.has_discount ? `<span class="discount-badge">${item.diskon_persen}% OFF</span>` : ''}
+                                    </div>
+                                    <div class="quantity-control">
+                                        <button onclick="changeQty(${item.id}, -1)">-</button>
+                                        <input type="number" id="qty-${item.id}" value="1" min="1" max="99">
+                                        <button onclick="changeQty(${item.id}, 1)">+</button>
+                                    </div>
+                                    <button class="add-to-cart-btn" onclick="addToCart(${item.id})">Tambah ke Keranjang</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            });
+
+            document.getElementById('menuContainer').innerHTML = html;
+        }
+
+        function changeQty(itemId, delta) {
+            const input = document.getElementById(`qty-${itemId}`);
+            let val = parseInt(input.value) + delta;
+            if (val < 1) val = 1;
+            if (val > 99) val = 99;
+            input.value = val;
+        }
+
+        function addToCart(itemId) {
+            const item = menuData.find(m => m.id === itemId);
+            const qty = parseInt(document.getElementById(`qty-${itemId}`).value);
+            
+            const existing = cart.find(c => c.id === itemId);
+            if (existing) {
+                existing.qty += qty;
+            } else {
+                cart.push({ ...item, qty });
+            }
+
+            updateCart();
+            saveCartToLocalStorage();
+        }
+
+        function removeFromCart(itemId) {
+            cart = cart.filter(c => c.id !== itemId);
+            updateCart();
+            saveCartToLocalStorage();
+        }
+
+        function updateCart() {
+            const cartContent = document.getElementById('cartContent');
+            
+            if (cart.length === 0) {
+                cartContent.innerHTML = '<div class="cart-empty">Belum ada item</div>';
+                document.getElementById('cartSummary').style.display = 'none';
+                return;
+            }
+
+            cartContent.innerHTML = cart.map(item => `
+                <div class="cart-item">
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">${item.nama}</div>
+                        <div class="cart-item-price">Rp ${item.harga_diskon.toLocaleString('id-ID')} x ${item.qty}</div>
+                    </div>
+                    <span class="cart-item-qty">${item.qty}</span>
+                    <button class="cart-item-remove" onclick="removeFromCart(${item.id})">Hapus</button>
+                </div>
+            `).join('');
+
+            calculateTotal();
+            document.getElementById('cartSummary').style.display = 'block';
+        }
+
+        function calculateTotal() {
+            const subtotal = cart.reduce((sum, item) => sum + (item.harga_diskon * item.qty), 0);
+            const shipping = subtotal >= 100000 ? 0 : (config.base_shipping_cost || 10000);
+            const discount = 0;
+            const total = subtotal + shipping - discount;
+
+            document.getElementById('subtotal').textContent = `Rp ${subtotal.toLocaleString('id-ID')}`;
+            document.getElementById('shippingCost').textContent = `Rp ${shipping.toLocaleString('id-ID')}`;
+            document.getElementById('discount').textContent = `Rp ${discount.toLocaleString('id-ID')}`;
+            document.getElementById('total').textContent = `Rp ${total.toLocaleString('id-ID')}`;
+        }
+
+        function submitOrder() {
+            const name = document.getElementById('customerName').value.trim();
+            const phone = document.getElementById('customerPhone').value.trim();
+            const address = document.getElementById('customerAddress').value.trim();
+            const method = document.getElementById('paymentMethod').value;
+            const email = document.getElementById('customerEmail')?.value?.trim() || 'noreply@feisty.id';
+            const note = document.getElementById('orderNote').value.trim();
+
+            if (!name || !phone || !address || !method) {
+                showAlert('Mohon isi semua data yang diperlukan!', 'error');
+                return;
+            }
+
+            if (cart.length === 0) {
+                showAlert('Keranjang masih kosong!', 'error');
+                return;
+            }
+
+            const subtotal = cart.reduce((sum, item) => sum + (item.harga_diskon * item.qty), 0);
+            const shipping = subtotal >= 100000 ? 0 : (config.base_shipping_cost || 10000);
+            const total = subtotal + shipping;
+            const orderId = 'ORD-' + Date.now();
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Memproses...';
+
+            const orderData = {
+                action: 'ORDER',
+                customer_name: name,
+                customer_phone: phone,
+                customer_address: address,
+                items: cart.map(item => ({
+                    name: item.nama,
+                    qty: item.qty,
+                    price: item.harga_diskon
+                })),
+                subtotal: subtotal,
+                shipping_cost: shipping,
+                discount: 0,
+                total: total,
+                payment_method: method,
+                order_id: orderId,
+                note: note
+            };
+
+            fetch(GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify(orderData)
+            })
+            .then(r => r.text())
+            .then(data => {
+                // If using gateway payment, initiate payment transaction server-side
+                if (method === 'Midtrans' || method === 'Card') {
+                    initiatePayment(orderId, total, email, phone, method);
+                } else {
+                    successOrder();
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                showAlert('❌ Gagal mengirim pesanan. Coba lagi!', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Pesan Sekarang';
+            });
+        }
+
+        function initiatePayment(orderId, amount, email, phone, method) {
+            const paymentAction = method === 'Midtrans' ? 'createPaymentMidtrans' : 'createPaymentStripe';
+            
+            fetch(GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: paymentAction,
+                    order_id: orderId,
+                    amount: amount,
+                    customer_email: email,
+                    customer_phone: phone
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.payment_url) {
+                    // Redirect ke payment gateway
+                    window.location.href = data.payment_url;
+                } else {
+                    showAlert('❌ Gagal membuat session pembayaran: ' + (data.error || 'Unknown error'), 'error');
+                    document.getElementById('submitBtn').disabled = false;
+                    document.getElementById('submitBtn').textContent = 'Pesan Sekarang';
+                }
+            })
+            .catch(err => {
+                showAlert('❌ Error payment: ' + err.message, 'error');
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('submitBtn').textContent = 'Pesan Sekarang';
+            });
+        }
+
+        function successOrder() {
+            showAlert('✅ Pesanan berhasil dikirim! Admin akan segera menghubungi Anda.', 'success');
+            setTimeout(() => {
+                cart = [];
+                updateCart();
+                document.getElementById('customerAddress').value = '';
+                document.getElementById('paymentMethod').value = '';
+                document.getElementById('orderNote').value = '';
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('submitBtn').textContent = 'Pesan Sekarang';
+            }, 2000);
+            alert.className = `alert ${type}`;
+            setTimeout(() => alert.style.display = 'none', 5000);
+        }
+    </script>
+</body>
+</html>

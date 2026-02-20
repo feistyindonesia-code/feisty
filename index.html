@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feisty - Pesan Makanan & Minuman Berkualitas Online | Delivery Jakarta</title>
+    <meta name="description" content="Feisty - Pesan makanan dan minuman berkualitas online dengan delivery cepat ke seluruh Jakarta. Menu lengkap, harga terjangkau, dan pelayanan terbaik 24/7.">
+    <meta name="theme-color" content="#667eea">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        /* ===== HEADER & NAVIGATION ===== */
+        header {
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                flex-direction: column;
+                padding: 15px 20px;
+                gap: 15px;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+
+        /* ===== HERO SECTION ===== */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 80px 40px;
+            text-align: center;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .hero p {
+            font-size: 1.3em;
+            margin-bottom: 30px;
+            opacity: 0.95;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                padding: 50px 20px;
+            }
+            
+            .hero h1 {
+                font-size: 2.2em;
+            }
+            
+            .hero p {
+                font-size: 1.1em;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+
+        /* ===== FEATURES SECTION ===== */
+        .features {
+            padding: 80px 40px;
+            background: #f9f9f9;
+        }
+
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 50px;
+            color: #333;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .feature-icon {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        /* ===== MENU PREVIEW SECTION ===== */
+        .menu-preview {
+            padding: 80px 40px;
+        }
+
+        .menu-preview-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .menu-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .menu-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .menu-card-image {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+        }
+
+        .menu-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .menu-card-body {
+            padding: 20px;
+        }
+
+        .menu-card-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .menu-card-desc {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .menu-card-price {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        /* ===== ABOUT SECTION ===== */
+        .about {
+            padding: 80px 40px;
+            background: #f9f9f9;
+        }
+
+        .about-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+        }
+
+        .about-content h2 {
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .about-content p {
+            font-size: 1.05em;
+            margin-bottom: 20px;
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .about-image {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5em;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .about-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .about-image {
+                height: 300px;
+                order: -1;
+            }
+        }
+
+        /* ===== STATS SECTION ===== */
+        .stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+        }
+
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .stat-item p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        /* ===== CONTACT SECTION ===== */
+        .contact {
+            padding: 80px 40px;
+        }
+
+        .contact-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .contact-info h2 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .info-item {
+            display: flex;
+            gap: 20px;
+        }
+
+        .info-icon {
+            font-size: 2em;
+            min-width: 50px;
+        }
+
+        .info-content h3 {
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .info-content p {
+            color: #666;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .social-link {
+            width: 45px;
+            height: 45px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background 0.3s;
+            font-size: 1.3em;
+        }
+
+        .social-link:hover {
+            background: #764ba2;
+        }
+
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .form-submit:hover {
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .contact-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== CTA SECTION ===== */
+        .cta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        .cta-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .cta h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .cta p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            opacity: 0.95;
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            background: #1a1a1a;
+            color: white;
+            padding: 50px 40px 20px;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-section h4 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .footer-section p,
+        .footer-section a {
+            color: #ccc;
+            text-decoration: none;
+            margin-bottom: 10px;
+            display: block;
+            transition: color 0.3s;
+        }
+
+        .footer-section a:hover {
+            color: #667eea;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #333;
+            padding-top: 20px;
+            text-align: center;
+            color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== HEADER ===== -->
+    <header>
+        <nav>
+            <div class="logo">🍽️ Feisty</div>
+            <ul class="nav-links">
+                <li><a href="#home">Beranda</a></li>
+                <li><a href="#menu">Menu</a></li>
+                <li><a href="#about">Tentang</a></li>
+                <li><a href="#contact">Kontak</a></li>
+            </ul>
+            <a href="order.html" class="nav-btn">Pesan Sekarang</a>
+        </nav>
+    </header>
+
+    <!-- ===== HERO SECTION ===== -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>🍽️ Selamat Datang di Feisty</h1>
+            <p>Nikmati Berbagai Pilihan Makanan & Minuman Berkualitas dengan Delivery Cepat</p>
+            <div class="hero-buttons">
+                <a href="order.html" class="btn btn-primary">Pesan Sekarang</a>
+                <a href="#menu" class="btn btn-secondary">Lihat Menu</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FEATURES SECTION ===== -->
+    <section class="features">
+        <div class="features-container">
+            <h2 class="section-title">Mengapa Pilih Feisty?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Pengiriman Cepat</h3>
+                    <p>Pesanan tiba dalam 30-45 menit dengan kondisi segar & hangat</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">✨</div>
+                    <h3>Kualitas Premium</h3>
+                    <p>Bahan berkualitas pilihan & resep yang sudah teruji</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Harga Terjangkau</h3>
+                    <p>Harga kompetitif dengan diskon menarik setiap hari</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">👨‍🍳</div>
+                    <h3>Chef Berpengalaman</h3>
+                    <p>Dibuat oleh chef profesional dengan pengalaman bertahun-tahun</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔐</div>
+                    <h3>Pembayaran Aman</h3>
+                    <p>Berbagai metode pembayaran aman: QRIS, COD, dan Transfer</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Pesan Mudah</h3>
+                    <p>Pesan via WhatsApp atau website dalam hitungan menit</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== MENU PREVIEW SECTION ===== -->
+    <section class="menu-preview" id="menu">
+        <div class="menu-preview-container">
+            <h2 class="section-title">Menu Pilihan Kami</h2>
+            <div id="menuContainer" class="menu-grid">
+                <p style="grid-column: 1/-1; text-align: center; color: #999;">Loading menu...</p>
+            </div>
+            <div style="text-align: center; margin-top: 40px;">
+                <a href="order.html" class="btn btn-primary">Lihat Semua Menu & Pesan</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== ABOUT SECTION ===== -->
+    <section class="about" id="about">
+        <div class="about-container">
+            <div class="about-image">🏪</div>
+            <div class="about-content">
+                <h2>Tentang Feisty</h2>
+                <p>Feisty adalah restoran online yang berdedikasi untuk memberikan pengalaman kuliner terbaik kepada pelanggan setia kami.</p>
+                <p>Kami menyediakan berbagai pilihan makanan & minuman berkualitas dengan cita rasa yang autentik dan bahan-bahan pilihan. Setiap hidangan disiapkan dengan penuh perhatian oleh tim chef profesional kami.</p>
+                <p>Dengan layanan delivery yang cepat dan terpercaya, kami memastikan setiap pesanan sampai ke tangan Anda dalam kondisi prime dan siap menikmati.</p>
+                <p><strong>Visi Kami:</strong> Menjadi pilihan utama untuk pesan makanan online dengan kualitas premium dan pelayanan terbaik.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== STATS SECTION ===== -->
+    <section class="stats">
+        <div class="stats-container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h3>500+</h3>
+                    <p>Pelanggan Puas</p>
+                </div>
+                <div class="stat-item">
+                    <h3>100+</h3>
+                    <p>Menu Tersedia</p>
+                </div>
+                <div class="stat-item">
+                    <h3>30min</h3>
+                    <p>Delivery Cepat</p>
+                </div>
+                <div class="stat-item">
+                    <h3>24/7</h3>
+                    <p>Customer Support</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== CONTACT SECTION ===== -->
+    <section class="contact" id="contact">
+        <div class="contact-container">
+            <div class="contact-info">
+                <h2>Hubungi Kami</h2>
+                <div class="info-item">
+                    <div class="info-icon">📍</div>
+                    <div class="info-content">
+                        <h3>Alamat</h3>
+                        <p>Jl. Merdeka No. 100, Jakarta Pusat, 12345</p>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">📞</div>
+                    <div class="info-content">
+                        <h3>Telepon</h3>
+                        <p>+62 878 8765 5880</p>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">⏰</div>
+                    <div class="info-content">
+                        <h3>Jam Operasional</h3>
+                        <p>Senin - Minggu: 10:00 - 22:00 WIB</p>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">✉️</div>
+                    <div class="info-content">
+                        <h3>Email</h3>
+                        <p>info@feisty.id</p>
+                    </div>
+                </div>
+                <div class="social-links">
+                    <a href="#" class="social-link" title="Instagram">📷</a>
+                    <a href="#" class="social-link" title="Facebook">f</a>
+                    <a href="#" class="social-link" title="TikTok">🎵</a>
+                    <a href="#" class="social-link" title="WhatsApp">💬</a>
+                </div>
+            </div>
+            <form class="contact-form" onsubmit="sendContact(event)">
+                <div class="form-group">
+                    <label>Nama Anda</label>
+                    <input type="text" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Nomor WhatsApp</label>
+                    <input type="tel" name="phone" required>
+                </div>
+                <div class="form-group">
+                    <label>Pesan</label>
+                    <textarea name="message" required></textarea>
+                </div>
+                <button type="submit" class="form-submit">Kirim Pesan</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ===== CTA SECTION ===== -->
+    <section class="cta">
+        <div class="cta-content">
+            <h2>Siap Memesan?</h2>
+            <p>Jangan lewatkan kesempatan untuk menikmati makanan berkualitas dari Feisty</p>
+            <a href="order.html" class="btn btn-primary">Pesan Sekarang</a>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-section">
+                    <h4>Feisty</h4>
+                    <p>Pesan makanan & minuman berkualitas online dengan delivery cepat ke area Jakarta.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Navigasi</h4>
+                    <a href="#home">Beranda</a>
+                    <a href="#menu">Menu</a>
+                    <a href="#about">Tentang</a>
+                    <a href="#contact">Kontak</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Layanan</h4>
+                    <a href="order.html">Pesan Online</a>
+                    <a href="#">Gratis Ongkir</a>
+                    <a href="#">Promo Spesial</a>
+                    <a href="#">Member Loyalty</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak Kami</h4>
+                    <p>📞 +62 878 8765 5880</p>
+                    <p>📧 info@feisty.id</p>
+                    <p>📍 Jakarta, Indonesia</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Feisty. Semua hak dilindungi. | <a href="#" style="color: #ccc; text-decoration: none;">Kebijakan Privasi</a> | <a href="#" style="color: #ccc; text-decoration: none;">Syarat & Ketentuan</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="config.js"></script>
+    <script>
+        // Load menu preview
+        const GAS_URL = FeistyConfig.GAS_URL;
+
+        function loadMenuPreview() {
+            fetch(`${GAS_URL}?action=getMenu`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('menuContainer').innerHTML = '<p style="grid-column: 1/-1; color: #999;">Menu tidak tersedia</p>';
+                        return;
+                    }
+                    
+                    // Show only first 6 items
+                    const preview = data.slice(0, 6);
+                    let html = preview.map(item => `
+                        <div class="menu-card">
+                            <div class="menu-card-image">
+                                ${item.gambar ? `<img src="${item.gambar}" alt="${item.nama}">` : '🍽️'}
+                            </div>
+                            <div class="menu-card-body">
+                                <div class="menu-card-title">${item.nama}</div>
+                                <div class="menu-card-desc">${item.deskripsi || 'Lezat dan bergizi'}</div>
+                                <div class="menu-card-price">Rp ${item.harga_diskon.toLocaleString('id-ID')}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    document.getElementById('menuContainer').innerHTML = html;
+                })
+                .catch(err => {
+                    console.error('Error loading menu:', err);
+                });
+        }
+
+        function sendContact(e) {
+            e.preventDefault();
+            alert('Terima kasih telah menghubungi kami! Kami akan segera merespons pesan Anda.');
+            e.target.reset();
+        }
+
+        document.addEventListener('DOMContentLoaded', loadMenuPreview);
+    </script>
+</body>
+</html>
+</body>
+</html>
