@@ -131,6 +131,11 @@ function setupSheets() {
     sh.appendRow(['whatsapp_device_id', '92b2af76-130d-46f0-b811-0874e3407988', new Date()]);
     sh.appendRow(['midtrans_key', '', new Date()]);
     sh.appendRow(['stripe_key', '', new Date()]);
+    sh.appendRow(['ipaymu_key', '', new Date()]);
+    sh.appendRow(['qris_api_key', '', new Date()]);
+    sh.appendRow(['enable_cod', 'true', new Date()]);
+    sh.appendRow(['enable_qris', 'false', new Date()]);
+    sh.appendRow(['enable_ipaymu', 'true', new Date()]);
     sh.appendRow(['base_url', 'https://yourfeisty.com', new Date()]);
     sh.appendRow(['maintenance_mode', 'false', new Date()]);
   }
@@ -243,6 +248,25 @@ function doGet(e) {
     result = getPOSDailyReport(date);
   }
   else if (action === 'getPOSSummary') result = getPOSSummary();
+  // NEW: Generate order link for bot to send to customers
+  else if (action === 'getOrderLink') {
+    const phoneParam = e?.parameter?.phone;
+    const namaParam = e?.parameter?.nama;
+    const baseUrl = getAPIKey('base_url', 'https://feisty.my.id');
+    
+    if (!phoneParam || !namaParam) {
+      result = { error: 'phone and nama parameters required' };
+    } else {
+      // Generate order link pointing to order.html with pre-filled customer data
+      const orderUrl = baseUrl + '/order.html?phone=' + encodeURIComponent(phoneParam) + '&nama=' + encodeURIComponent(namaParam);
+      result = {
+        success: true,
+        order_url: orderUrl,
+        phone: phoneParam,
+        nama: namaParam
+      };
+    }
+  }
   else if (action === 'runSetup') result = setupSheets();
   else result = { error: 'Invalid action: ' + action };
   
@@ -496,33 +520,39 @@ function handleIncomingWA(phone, text) {
 }
 
 // ==================================================
-// HANDLE WAIT NAME STATE
+// HANDLE WAIT NAME STATE - STRICT VALIDATION
 // ==================================================
 function handleWaitName(phone, text, customer) {
   const input = text.trim();
   
-  if (input.length < 2) {
-    sendWA(phone, "Nama minimal 2 karakter. Boleh kami tahu nama Kakak? 😊");
-    return;
-  }
-  
-  // Validate if input is REALLY a name using AI
+  // PANGGIL validasi name yang STRICT
   const validation = validateNameWithAI(input);
   
+  // DEBUG: Log semua input untuk debugging
+  logToSheet("WAIT_NAME input:", input + " | isName: " + validation.isName + " | conf: " + validation.confidence);
+  
+  // JIKA AI MENGATAKAN BUKAN NAMA → TOLAK LANGSUNG
   if (!validation.isName) {
-    logToSheet("Input rejected (not a name):", input);
-    sendWA(phone, `Maaf Kak, "${input}" sepertinya bukan nama. 😊\n\nBoleh kami tahu nama Kakak sebenarnya? Nama lengkap atau nama panggilan juga bisa!`);
+    logToSheet("WAIT_NAME REJECTED:", input + " | Reason: " + validation.reason);
+    sendWA(phone, `Maaf Kak, "${input}" bukan nama yang valid. 😊\n\nBoleh coba berikan nama asli Kakak? Nama lengkap atau nama panggilan juga bisa!`);
     return;
   }
   
+  // JIKA CONFIDENCE RENDAH → TOLAK
+  if (validation.confidence < 0.7) {
+    logToSheet("WAIT_NAME LOW CONFIDENCE:", input + " | conf: " + validation.confidence);
+    sendWA(phone, `Maaf Kak, "${input}" terlihat seperti chat biasa. 😊\n\nBoleh kasih nama asli Kakak?`);
+    return;
+  }
+  
+  // BARU SIMPAN NAMA - hanya jika validasi lulus
   const name = validation.cleanedName || input;
   
-  // Update customer with name and set to CONVERSATION
+  // Update customer dengan nama dan set ke CONVERSATION
   updateCustomer(phone, name, STATE_CONVERSATION);
-  logToSheet("Customer registered:", name);
-  logToSheet("Name validation score:", validation.confidence);
+  logToSheet("WAIT_NAME ACCEPTED - Customer registered:", name + " | conf: " + validation.confidence);
   
-  // Send welcome and initial greeting
+  // Kirim welcome dan salam awal
   sendWA(phone, `✨ Halo Kak ${name}! ✨\n\nSenang berkenalan dengan Kakak! 🙏\n\nFeisty siap melayani Kakak dengan berbagai pilihan makanan dan minuman lezat. Ada yang bisa saya bantu?`);
 }
 
@@ -532,6 +562,7 @@ function handleWaitName(phone, text, customer) {
 function handleConversation(phone, text, customer) {
   try {
     const textLower = text.toLowerCase();
+    const customerName = customer?.name || 'Kak';
     
     // Special commands
     if (textLower === 'menu') {
@@ -540,7 +571,9 @@ function handleConversation(phone, text, customer) {
     }
     
     if (textLower === 'pesan' || textLower === 'order') {
-      sendWA(phone, `🛒 *PEMESANAN*\n\nBaik Kak ${customer.name}, silakan klik link di bawah untuk memilih menu:\n\n➡️ feisty.my.id/?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}\n\nData Kakak sudah terisi otomatis! 🎉`);
+      const baseUrl = getAPIKey('base_url', 'https://feisty.my.id');
+      const orderLink = baseUrl + '/order.html?phone=' + encodeURIComponent(customer.phone) + '&nama=' + encodeURIComponent(customer.name);
+      sendWA(phone, `🛒 *PEMESANAN*\n\nBaik Kak ${customerName}, silakan klik link di bawah untuk memilih menu:\n\n➡️ ${orderLink}\n\nData Kakak sudah terisi otomatis! 🎉\n\nMau tambah menu lain? Klik link di atas ya! 😊`);
       return;
     }
     
@@ -550,20 +583,10 @@ function handleConversation(phone, text, customer) {
       return;
     }
     
-    // DETECT CONVERSATION CONTEXT
-    const contextAnalysis = detectConversationContext(text, customer);
-    logToSheet("Conversation context:", contextAnalysis.category);
-    logToSheet("Context confidence:", contextAnalysis.confidence);
-    
-    // Jika off-topic, SILENT - jangan kirim pesan apapun
-    if (!contextAnalysis.isFeistyRelated) {
-      logToSheet("OFF-TOPIC MESSAGE IGNORED:", text);
-      logToSheet("Reason:", contextAnalysis.reason);
-      return; // Silent, no response
-    }
-    
-    // Get AI response based on user message
-    const response = getAIResponse(text, customer);
+    // AI akan menganalisis FULL message dan menyimpulkan sendiri
+    // apakah pertanyaan sesuai dengan konteks Feisty atau tidak
+    // Kemudian AI memberikan respons yang sesuai
+    const response = getAIResponseWithContextDetection(text, customer);
     sendWA(phone, response);
     
   } catch (err) {
@@ -653,7 +676,8 @@ function sendMenuViaWA(phone, customer) {
     });
     
     // Send footer with order link
-    const orderLink = `feisty.my.id/?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
+    const baseUrl = getAPIKey('base_url', 'https://feisty.my.id');
+    const orderLink = baseUrl + '/order.html?phone=' + encodeURIComponent(customer.phone) + '&nama=' + encodeURIComponent(customer.name);
     const footerMsg = `━━━━━━━━━━━━━━━━━━━━━\n\n📝 *Untuk Memesan*\n\nSilakan klik link di bawah untuk order:\n\n➡️ ${orderLink}\n\nAtau ketik *pesan* untuk langsung ke halaman order.\n\nTerima kasih telah memilih Feisty! 🙏`;
     
     sendWA(phone, footerMsg);
@@ -724,42 +748,45 @@ function getMenuFormatted() {
 // ==================================================
 function detectConversationContext(userMessage, customer) {
   try {
-    const prompt = `Analyze if this message is related to Feisty food and beverage ordering service.
+    const prompt = `Analyze this WhatsApp message and determine if it's related to Feisty food and beverage ordering service.
 
-FEISTY CONTEXT (should accept):
-- Questions about menu, food, drinks, prices
-- Order inquiries, delivery questions
-- Payment methods (QRIS, COD)
-- Compliments/feedback about Feisty
-- Anything food/beverage/restaurant related
+FEISTY CONTEXT (SHOULD RESPOND):
+- Questions about Feisty menu, food, drinks, prices
+- Order inquiries for Feisty products
+- Delivery questions about Feisty
+- Payment methods for Feisty orders
+- Customer service questions about Feisty
+- Complaints/feedback about Feisty products
+- Asking about Feisty promos/discounts
+- Anything directly about Feisty business
 
-NON-FEISTY CONTEXT (should reject):
-- Messages from other company's CS trying to recruit/sell
-- Personal chats with admin's friends
-- Technical issues unrelated to Feisty
+NON-FEISTY CONTEXT (SHOULD NOT RESPOND):
+- Messages from other companies' CS trying to sell products/services
+- Promotional messages from other businesses (Gojek, Grab, Tokopedia, Shopee, etc.)
+- Job recruitment messages
 - Spam or phishing attempts
-- Asking to contact other businesses
-- "Saya dari [perusahaan lain] CS, bisa bantu?"
-- Random personal life topics
+- Personal messages not related to Feisty
+- Questions asking to contact other businesses
+- "Saya dari [perusahaan lain]" - claims being from other companies
+- Messages promoting other restaurants, cafes, or food businesses
 
 MESSAGE: "${userMessage}"
 
 RESPOND with ONLY a JSON (no markdown):
 {
   "isFeistyRelated": true/false,
-  "category": "customer_inquiry|order|delivery|payment|feedback|off_topic|suspicious|other",
+  "category": "customer_inquiry|order|delivery|payment|feedback|promo_feisty|off_topic|other_business_cs|spam",
   "confidence": 0.0-1.0,
-  "reason": "brief reason in Indonesian"
+  "reason": "brief reason in Indonesian (max 50 chars)",
+  "shouldRespond": true/false
 }
 
-Examples:
-- "Mau pesan 2 nasi goreng" → {"isFeistyRelated": true, "category": "order", "confidence": 1.0, "reason": "Jelas order makanan"}
-- "Berapa biaya ongkir?" → {"isFeistyRelated": true, "category": "delivery", "confidence": 1.0, "reason": "Pertanyaan delivery"}
-- "Saya CS dari GoFood, ada yang bisa dibantu?" → {"isFeistyRelated": false, "category": "suspicious", "confidence": 0.95, "reason": "Klaim CS dari perusahaan lain"}
-- "Kemarin makan disini enak banget!" → {"isFeistyRelated": true, "category": "feedback", "confidence": 1.0, "reason": "Feedback positif"}
-- "Hari ini cuaca cerah ya" → {"isFeistyRelated": false, "category": "off_topic", "confidence": 0.99, "reason": "Obrolan personal bukan tentang Feisty"}
-- "Bisa bayar pake gopay?" → {"isFeistyRelated": true, "category": "payment", "confidence": 1.0, "reason": "Pertanyaan pembayaran"}
-- "Teman saya nyari jasa grafis" → {"isFeistyRelated": false, "category": "off_topic", "confidence": 0.98, "reason": "Topik bisnis lain"}`;
+Key rules:
+- If message mentions other business names (Tokopedia, Gojek, Grab, etc.) WITHOUT mentioning Feisty → shouldRespond: false
+- If message is clearly promotional from other companies → shouldRespond: false
+- If asking about Feisty promos → shouldRespond: true
+- If asking about promos but NOT mentioning Feisty → shouldRespond: false
+- If asking about other food businesses → shouldRespond: false`;
 
     const payload = {
       contents: [{
@@ -770,7 +797,7 @@ Examples:
     const geminiKey = getAPIKey('gemini_key', '');
     if (!geminiKey) {
       Logger.log('Warning: Gemini API key not configured in CONFIG sheet');
-      return {isFeistyRelated: false, category: 'error', confidence: 0, reason: 'API key missing'};
+      return {isFeistyRelated: false, category: 'error', confidence: 0, reason: 'API key missing', shouldRespond: false};
     }
     const url = GEMINI_API_URL + "?key=" + geminiKey;
     const options = {
@@ -803,7 +830,8 @@ Examples:
           isFeistyRelated: analysis.isFeistyRelated === true,
           category: analysis.category || "other",
           confidence: analysis.confidence || 0.5,
-          reason: analysis.reason || "Analysis completed"
+          reason: analysis.reason || "Analysis completed",
+          shouldRespond: analysis.shouldRespond !== false
         };
       } catch (e) {
         logToSheet("Context detection JSON error:", e.toString());
@@ -834,7 +862,7 @@ function fallbackContextDetection(message) {
     'nasi', 'mie', 'ayam', 'minuman', 'kopi', 'jus', 'teh'
   ];
   
-  // BLACKLIST - Suspicious patterns
+  // BLACKLIST - Suspicious patterns (other business CS/promos)
   const suspiciousKeywords = [
     'saya dari',
     'saya cs',
@@ -842,6 +870,8 @@ function fallbackContextDetection(message) {
     'dari perusahaan',
     'dari go',
     'dari grab',
+    'dari tokopedia',
+    'dari shopee',
     'rekrutmen',
     'lowongan',
     'kerja',
@@ -850,16 +880,23 @@ function fallbackContextDetection(message) {
     'pinjam uang',
     'transfer uang',
     'judi',
-    'togel'
+    'togel',
+    'promo',
+    'diskon',
+    'cashback',
+    'affiliate',
+    'join webinar',
+    'ikut pelatihan'
   ];
   
-  // Check if suspicious
+  // Check if suspicious/blacklisted
   if (suspiciousKeywords.some(keyword => msg.includes(keyword))) {
     return {
       isFeistyRelated: false,
       category: "suspicious",
       confidence: 0.85,
-      reason: "Detected suspicious pattern"
+      reason: "Detected suspicious pattern",
+      shouldRespond: false
     };
   }
   
@@ -873,21 +910,24 @@ function fallbackContextDetection(message) {
     if (msg.includes('ongkir') || msg.includes('pengiriman') || msg.includes('antar')) category = "delivery";
     if (msg.includes('bayar') || msg.includes('pembayaran') || msg.includes('qris') || msg.includes('cod')) category = "payment";
     if (msg.includes('enak') || msg.includes('lezat') || msg.includes('nikmat') || msg.includes('sedap')) category = "feedback";
+    if (msg.includes('promo') || msg.includes('diskon')) category = "promo_feisty";
     
     return {
       isFeistyRelated: true,
       category: category,
       confidence: 0.8,
-      reason: "Matched Feisty keywords"
+      reason: "Matched Feisty keywords",
+      shouldRespond: true
     };
   }
   
-  // Default: off-topic
+  // Default: off-topic - don't respond
   return {
     isFeistyRelated: false,
     category: "off_topic",
     confidence: 0.7,
-    reason: "No Feisty-related keywords detected"
+    reason: "No Feisty-related keywords detected",
+    shouldRespond: false
   };
 }
 
@@ -986,9 +1026,14 @@ Examples:
   }
 }
 
-// Fallback validation jika AI gagal
+// Fallback validation jika AI gagal - SANGAT KETAT
 function fallbackNameValidation(input) {
   const trimmed = input.trim();
+  
+  // SANGAT KETAT: Minimal 3 karakter
+  if (trimmed.length < 3) {
+    return { isName: false, cleanedName: null, confidence: 0.95, reason: "Terlalu pendek (min 3 karakter)" };
+  }
   
   // Reject jika hanya angka
   if (/^\d+$/.test(trimmed)) {
@@ -1000,26 +1045,58 @@ function fallbackNameValidation(input) {
     return { isName: false, cleanedName: null, confidence: 1.0, reason: "Hanya emoji" };
   }
   
-  // Reject jika mengandung kata-kata greeting/questions
-  const invalidKeywords = ['apa', 'siapa', 'kapan', 'dimana', 'bagaimana', 'berapa', 'halo', 'hai', 'assalamualaikum', 'halo apa kabar', 'iyaa', 'iya', 'enggak', 'tidak', 'ya', 'nggak', 'ok', 'oke', 'sip'];
-  const lowerInput = trimmed.toLowerCase();
-  
-  if (invalidKeywords.some(keyword => lowerInput === keyword || lowerInput.includes(keyword + '?') || lowerInput.includes(keyword + '!'))) {
-    return { isName: false, cleanedName: null, confidence: 0.9, reason: "Terdeteksi greeting/pertanyaan" };
+  // Reject jika terlalu panjang
+  if (trimmed.length > 35) {
+    return { isName: false, cleanedName: null, confidence: 0.9, reason: "Terlalu panjang" };
   }
   
-  // Reject jika terlalu panjang (nama biasanya < 50 char)
-  if (trimmed.length > 100) {
-    return { isName: false, cleanedName: null, confidence: 0.85, reason: "Terlalu panjang untuk nama" };
+  // Reject jika mengandung angka di tengah (seperti budi123)
+  if (/[a-zA-Z]+\d+[a-zA-Z]*/.test(trimmed) || /\d+[a-zA-Z]+/.test(trimmed)) {
+    return { isName: false, cleanedName: null, confidence: 0.9, reason: "Mengandung angka di tengah" };
   }
   
-  // Reject kombinasi huruf-angka aneh
-  if (/\d/.test(trimmed) && !/^[a-zA-Z\s\d'-]+$/.test(trimmed)) {
-    return { isName: false, cleanedName: null, confidence: 0.8, reason: "Karakter tidak valid dalam nama" };
+  // Reject kata-kata chat umum yang sering disalahgunakan
+  const chatWords = [
+    'halo', 'hai', 'hi', 'hey', 'hello', 'assalamualaikum', 'wassalam',
+    'apa', 'siapa', 'kapan', 'dimana', 'bagaimana', 'berapa', 'kenapa',
+    'iya', 'ya', 'ga', 'gak', 'ngga', 'enggak', 'tidak', 'nggak', 'g',
+    'ok', 'oke', 'sip', 'sipp', 'good', 'nice', 'great',
+    'si', 'yg', 'dgn', 'tp', 'tpi', 'sdh', 'udah', 'blm', 'belum',
+    'bisa', 'gk', 'bs', 'jd', 'jdi', 'utk', 'untuk', 'dari',
+    'test', 'coba', 'cek', '试试', 'テスト'
+  ];
+  
+  const lower = trimmed.toLowerCase();
+  
+  // Jika input pendek dan seluruhnya adalah chat words
+  if (trimmed.length <= 5) {
+    for (let word of chatWords) {
+      if (lower === word) {
+        return { isName: false, cleanedName: null, confidence: 0.95, reason: "Chat word: " + word };
+      }
+    }
   }
   
-  // Jika lolos validasi di atas, terima sebagai nama
-  return { isName: true, cleanedName: trimmed, confidence: 0.75, reason: "Passed fallback validation" };
+  // Jika input mengandung spasi dan salah satu kata adalah chat word
+  if (trimmed.includes(' ')) {
+    const words = lower.split(/\s+/);
+    let chatCount = 0;
+    for (let w of words) {
+      if (chatWords.includes(w)) chatCount++;
+    }
+    // Jika > 50% kata adalah chat words, reject
+    if (chatCount >= words.length / 2) {
+      return { isName: false, cleanedName: null, confidence: 0.9, reason: "Terlalu banyak chat words" };
+    }
+  }
+  
+  // Validasi dasar: harus ada minimal 2 huruf berurutan
+  if (!/[a-zA-Z\p{L}]{2,}/u.test(trimmed)) {
+    return { isName: false, cleanedName: null, confidence: 0.9, reason: "Minimal 2 huruf berurutan" };
+  }
+  
+  // Jika lolos semua validasi ketat, terima sebagai nama
+  return { isName: true, cleanedName: trimmed, confidence: 0.8, reason: "Lolos validasi ketat" };
 }
 
 // ==================================================
@@ -1030,21 +1107,48 @@ function getAIResponse(userMessage, customer) {
     // Get knowledge base
     const knowledgeBase = getKnowledgeBaseFormatted();
     
+    // Determine if customer is known (has name in system)
+    const isKnownCustomer = customer && customer.name && customer.name.length > 0;
+    const customerName = customer?.name || 'Kak';
+    const customerPhone = customer?.phone || '';
+    
     // Build context for Gemini with intent detection
     const systemPrompt = `Anda adalah Customer Service Bot Feisty, layanan pemesanan makanan dan minuman online yang ramah dan helpful.
 
 IDENTITAS:
 - Nama Bot: Feisty CS Bot
-- Nama Customer: ${customer.name || 'Kak'}
+- Nama Customer: ${customerName}
+- Customer Status: ${isKnownCustomer ? 'SUDAH TERDAFTAR' : 'BARU/BELUM TERDAFTAR'}
 - Bahasa: Indonesian (casual & ramah)
 
 TENTANG FEISTY:
 - Menyediakan berbagai pilihan makanan dan minuman berkualitas
 - Harga terjangkau (Rp 15.000 - Rp 100.000)
 - Pengiriman tersedia dengan biaya ongkir berdasarkan jarak
-- Terima pembayaran via QRIS dan COD (Bayar di Tempat)
-- Minus pesan Rp 50.000 untuk delivery
+- Terima pembayaran via QRIS, COD, dan IPAYMU
+- Minimal pesan Rp 50.000 untuk delivery
 - Link order: feisty.my.id
+
+PENTING - CARA MENANGANI CHAT:
+1. Jika customer SUDAH TERDAFTAR (sudah ada nama):
+   - Gunakan nama mereka dalam percakapan
+   - Tawarkan promo personal jika ada
+   - Layanan seperti biasa
+
+2. Jika customer BARU/BELUM TERDAFTAR:
+   - Tetap layani dengan baik tapi bisa arahkan untuk registrasi
+   - Biasa chat dari nomor baru = customer potensial
+   - Jangan pernah menolak atau mengabaikan chat
+   - Meskipun kadang chatnya aneh/berkelanjutan,tetaplayani dengan sopan
+
+3. JANGAN PERNAH:
+   - Menolak atau tidak merespons customer
+   - Mengabaikan chat yang看起来 aneh
+   - Menuduh customer sebagai bot spam
+
+4. Jika ada yang promoinfo dari perusahaan lain masuk:
+   - Tetap sopan tapi bisa arahkan ke topic Feisty
+   - Contoh: "Maaf, kami fokus di Feisty. Ada yang bisa Feisty bantu?"
 
 PENGETAHUAN BASIS:
 ${knowledgeBase}
@@ -1052,11 +1156,11 @@ ${knowledgeBase}
 INSTRUKSI RESPONS:
 1. Pahami intent customer (mau tanya menu, pesan makanan, CS, dll)
 2. Berikan respons yang helpful dan sopan dengan emoji
-3. Jika customer mau pesan, tawarkan link order: feisty.my.id/?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}
+3. Jika customer mau pesan, tawarkan link order: feisty.my.id/order.html?phone=${encodeURIComponent(customerPhone)}&nama=${encodeURIComponent(customerName)}
 4. Jika pertanyaan diluar scope, arahkan ke menu atau admin
-5. SANGAT PENTING: Respons MAKSIMAL 300 karakter
+5. Respons MAKSIMAL 300 karakter
 6. Gunakan bahasa casual, jangan terlalu formal
-7. Selalu ramah dan helpful
+7. Selalu ramah dan helpful - JANGAN MENOLAK CHAT APAPUN
 
 INTENT DETECTION:
 - Menu/Product inquiry: Suggest link or describe menu
@@ -1139,6 +1243,126 @@ function getFallbackResponse(name) {
   ];
   
   return responses[Math.floor(Math.random() * responses.length)];
+}
+
+// ==================================================
+// AI RESPONSE WITH CONTEXT DETECTION (AI concludes & responds to ALL chats)
+// ==================================================
+function getAIResponseWithContextDetection(userMessage, customer) {
+  try {
+    // Get knowledge base
+    const knowledgeBase = getKnowledgeBaseFormatted();
+    
+    // Determine if customer is known (has name in system)
+    const isKnownCustomer = customer && customer.name && customer.name.length > 0;
+    const customerName = customer?.name || 'Kak';
+    const customerPhone = customer?.phone || '';
+    
+    // Build prompt for AI to analyze message context and CONCLUDE
+    // AI will determine if question is Feisty-related or not
+    // Then respond accordingly - ALWAYS RESPOND to all chats
+    const systemPrompt = `Anda adalah Customer Service Bot Feisty, layanan pemesanan makanan dan minuman online yang ramah dan helpful.
+
+IDENTITAS:
+- Nama Bot: Feisty CS Bot
+- Nama Customer: ${customerName}
+- Customer Status: ${isKnownCustomer ? 'SUDAH TERDAFTAR' : 'BARU/BELUM TERDAFTAR'}
+- Bahasa: Indonesian (casual & ramah)
+
+TENTANG FEISTY:
+- Feisty adalah bisnis makanan dan minuman (F&B)
+- Menyediakan berbagai pilihan makanan dan minuman berkualitas
+- Harga terjangkau (Rp 15.000 - Rp 100.000)
+- Pengiriman tersedia dengan biaya ongkir berdasarkan jarak
+- Terima pembayaran via COD, QRIS, dan IPAYMU
+- Minimal pesan Rp 50.000 untuk delivery
+- Link order: feisty.my.id/order.html
+
+TUGAS ANDA:
+1. ANALISA pesan customer untuk menyimpulkan konteks
+2. TENTUKAN apakah pertanyaan terkait dengan Feisty atau TIDAK
+3. BERIKAN respons yang sesuai - SELALU RESPON semua chat
+
+KATEGORI & CARA MERESPOND:
+
+A) JIKA PERTANYAAN TENTANG FEISTY (menu, harga, pesan, ongkir, pembayaran, delivery, promo, CS Feisty):
+   - Berikan informasi lengkap tentang Feisty
+   - Tawarkan link order jika mau pesan
+   - Contoh: "Betul Kak, Feisty menyediakan... Mau pesan? Klik: feisty.my.id/order.html"
+
+B) JIKA PERTANYAAN TIDAK TERKAIT FEISTY (promo bisnis lain, cs perusahaan lain, topik lain):
+   - Tetap sopan dan helpful
+   - Akui topik yang dibicarakan customer
+   - Sekaligus arahkan kembali ke Feisty dengan halus
+   - Contoh: "Maaf Kak, itu tentang [topik]. Untuk Feisty, ada yang bisa saya bantu? 😊"
+
+C) JIKA CHAT TIDAK JELAS/ANEH/PANJANG (bisa dari bot lain atau conversation lain):
+   - Tetaprespon dengan sopan
+   - Tawarkan bantuan terkait Feisty
+   - Jangan menolak atau menunjukkan kecurigaan
+   - Contoh: "Baik Kak ${customerName}, ada yang bisa Feisty bantu? Mau pesan makanan/minuman? 🍽️"
+
+D) JIKA GREETING/SAKIT HATI:
+   - Respon dengan salam hangat
+   - Tawarkan bantuan
+
+PENGETAHUAN TENTANG FEISTY:
+${knowledgeBase}
+
+CONTOH RESPONS:
+- Customer: "Harga nasi goreng berapa?" → Feisty-related → Berikan info harga & tawarkan order
+- Customer: "Saya dari Gojek, mau ditawarkan kerja" → Bukan Feisty → "Wah menarik! Untuk info kerja Feisty, bisa hubungi admin ya. Ada yang Feisty bantu untuk pemesanan? 😊"
+- Customer: "Haiii" → Greeting → "Halo Kak ${customerName}! 👋 Ada yang bisa Feisty bantu? 😊"
+- Customer: [Pesan panjang aneh] → Tetaprespon → "Baik Kak ${customerName}, saya siap membantu! Mau pesan apa hari ini? 🍽️"
+- Customer: "Promo Hari ini apa?" → Feisty-related → Berikan info promo Feisty
+
+INSTRUKSI:
+1. ANALISA dulu konteks pesan customer
+2. TENTUKAN kategori (Feisty-related atau tidak)
+3. BERIKAN respons yang sesuai - JANGAN PERNAH DIAM/TIDAK MERESPON
+4. Respons MAKSIMAL 300 karakter
+5. Gunakan bahasa casual dengan emoji
+6. SELALU hospitality dan helpful - TIDAK PERNAH MENOLAK
+
+Pesan Customer: "${userMessage}"
+
+Sekarang, ANALISA dan BERIKAN respons yang sesuai (maksimal 300 karakter, dengan emoji):`;
+
+    const payload = {
+      contents: [{
+        parts: [{ text: systemPrompt }]
+      }]
+    };
+
+    const geminiKey = getAPIKey('gemini_key', '');
+    if (!geminiKey) {
+      Logger.log('Warning: Gemini API key not configured');
+      return `Halo Kak ${customerName}! 😊 Ada yang bisa Feisty bantu? Mau pesan makanan atau minuman? 🍽️`;
+    }
+    const url = GEMINI_API_URL + "?key=" + geminiKey;
+    const options = {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+      timeout: 20
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const result = JSON.parse(response.getContentText());
+
+    if (result.candidates && result.candidates.length > 0) {
+      const aiResponse = result.candidates[0].content.parts[0].text.trim();
+      // Ensure response is not too long
+      return aiResponse.substring(0, 500);
+    }
+    
+    return getFallbackResponse(customerName);
+    
+  } catch (err) {
+    logToSheet("Gemini Context Detection Error:", err.toString());
+    return `Halo Kak ${customer?.name || 'Kak'}! 😊 Ada yang bisa Feisty bantu? Mau pesan makanan atau minuman? 🍽️`;
+  }
 }
 
 // ==================================================
@@ -1294,6 +1518,7 @@ function normalizeNumber(num) {
 function getConfig() {
   const location = getLocation();
   const settings = getSettings();
+  const customConfig = getCustomConfig();
   
   return {
     latitude: location.latitude,
@@ -1301,7 +1526,11 @@ function getConfig() {
     nama_toko: location.nama_toko,
     base_shipping_cost: settings.base_shipping_cost,
     shipping_cost_per_km: settings.shipping_cost_per_km,
-    free_shipping_min_distance: settings.free_shipping_min_distance
+    free_shipping_min_distance: settings.free_shipping_min_distance,
+    // Payment method settings from custom config
+    enable_cod: customConfig.enable_cod !== 'false',
+    enable_qris: customConfig.enable_qris === 'true',
+    enable_ipaymu: customConfig.enable_ipaymu !== 'false'
   };
 }
 

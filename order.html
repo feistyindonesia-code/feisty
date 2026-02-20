@@ -1,808 +1,1873 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pesan Menu Online - Feisty</title>
-    <meta name="description" content="Pesan makanan berkualitas dari Feisty dengan mudah. Pilih menu, tambah ke keranjang, dan checkout dengan aman.">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-
-        header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-        }
-
-        header h1 {
-            font-size: 2.5em;
-            margin-bottom: 5px;
-        }
-
-        header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
-        .nav-back {
-            display: inline-block;
-            color: white;
-            text-decoration: none;
-            font-weight: 600;
-            margin-bottom: 15px;
-            transition: opacity 0.3s;
-        }
-
-        .nav-back:hover {
-            opacity: 0.8;
-        }
-
-        .content {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 30px;
-            padding: 30px;
-        }
-
-        @media (max-width: 768px) {
-            .content {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .menu-section {
-            flex: 1;
-        }
-
-        .category {
-            margin-bottom: 30px;
-        }
-
-        .category-title {
-            background: #667eea;
-            color: white;
-            padding: 12px 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-
-        .menu-items {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .menu-item {
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            transition: transform 0.3s, box-shadow 0.3s;
-            cursor: pointer;
-        }
-
-        .menu-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .menu-item-image {
-            width: 100%;
-            height: 150px;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3em;
-        }
-
-        .menu-item-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .menu-item-content {
-            padding: 15px;
-        }
-
-        .menu-item-name {
-            font-weight: bold;
-            font-size: 1.1em;
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        .menu-item-desc {
-            font-size: 0.85em;
-            color: #666;
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-
-        .menu-item-price {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .price {
-            font-weight: bold;
-            color: #667eea;
-            font-size: 1.2em;
-        }
-
-        .original-price {
-            font-size: 0.9em;
-            color: #999;
-            text-decoration: line-through;
-        }
-
-        .discount-badge {
-            background: #ff6b6b;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-        }
-
-        .quantity-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .quantity-control button {
-            background: #667eea;
-            color: white;
-            border: none;
-            width: 30px;
-            height: 30px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .quantity-control button:hover {
-            background: #764ba2;
-        }
-
-        .quantity-control input {
-            width: 50px;
-            text-align: center;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 5px;
-        }
-
-        .add-to-cart-btn {
-            width: 100%;
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.3s;
-        }
-
-        .add-to-cart-btn:hover {
-            background: #764ba2;
-        }
-
-        .cart-section {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 10px;
-            height: fit-content;
-            position: sticky;
-            top: 20px;
-        }
-
-        .cart-title {
-            font-size: 1.5em;
-            font-weight: bold;
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        .cart-empty {
-            text-align: center;
-            color: #999;
-            padding: 40px 20px;
-        }
-
-        .cart-items {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-bottom: 20px;
-        }
-
-        .cart-item {
-            background: white;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-left: 4px solid #667eea;
-        }
-
-        .cart-item-info {
-            flex: 1;
-        }
-
-        .cart-item-name {
-            font-weight: bold;
-            margin-bottom: 3px;
-        }
-
-        .cart-item-price {
-            color: #667eea;
-            font-size: 0.9em;
-        }
-
-        .cart-item-qty {
-            background: #f0f0f0;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.9em;
-            margin: 0 10px;
-        }
-
-        .cart-item-remove {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8em;
-        }
-
-        .cart-summary {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .summary-row.total {
-            border-bottom: 2px solid #667eea;
-            border-top: 2px solid #667eea;
-            margin-top: 10px;
-            padding-top: 10px;
-            font-weight: bold;
-            font-size: 1.2em;
-            color: #667eea;
-        }
-
-        .customer-form {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .form-title {
-            font-weight: bold;
-            margin-bottom: 15px;
-            font-size: 1.1em;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            color: #333;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 1em;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
-        }
-
-        .submit-btn {
-            width: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 1.1em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .submit-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-        }
-
-        .submit-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            margin: 20px;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .alert {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 6px;
-            display: none;
-        }
-
-        .alert.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            display: block;
-        }
-
-        .alert.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            display: block;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <a href="index.html" class="nav-back">← Kembali ke Beranda</a>
-            <h1>🍽️ Feisty</h1>
-            <p>Pesan Menu Favorit Anda Sekarang!</p>
-        </header>
-
-        <div class="content">
-            <div class="menu-section">
-                <div id="loading" class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading menu...</p>
-                </div>
-                <div id="menuContainer"></div>
-            </div>
-
-            <div class="cart-section">
-                <div class="cart-title">🛒 Keranjang Pesanan</div>
-                <div id="cartContent" class="cart-items">
-                    <div class="cart-empty">Belum ada item</div>
-                </div>
-
-                <div id="cartSummary" class="cart-summary" style="display:none;">
-                    <div class="summary-row">
-                        <span>Subtotal:</span>
-                        <span id="subtotal">Rp 0</span>
-                    </div>
-                    <div class="summary-row">
-                        <span>Ongkir:</span>
-                        <span id="shippingCost">Rp 0</span>
-                    </div>
-                    <div class="summary-row">
-                        <span>Diskon:</span>
-                        <span id="discount">Rp 0</span>
-                    </div>
-                    <div class="summary-row total">
-                        <span>Total:</span>
-                        <span id="total">Rp 0</span>
-                    </div>
-                </div>
-
-                <div class="customer-form">
-                    <div class="form-title">📋 Data Pengiriman</div>
-                    <div id="alert"></div>
-
-                    <div class="form-group">
-                        <label>Nama Lengkap *</label>
-                        <input type="text" id="customerName" placeholder="Masukkan nama Anda" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Nomor WhatsApp *</label>
-                        <input type="tel" id="customerPhone" placeholder="628xxxxxxxxx" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Email (untuk notifikasi pembayaran)</label>
-                        <input type="email" id="customerEmail" placeholder="email@example.com">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Alamat Lengkap *</label>
-                        <textarea id="customerAddress" placeholder="Jalan, Nomor, Kecamatan, Kota" required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Metode Pembayaran *</label>
-                        <select id="paymentMethod" required>
-                            <option value="">-- Pilih Metode --</option>
-                            <option value="QRIS">QRIS</option>
-                            <option value="Card">Kartu Kredit (Midtrans)</option>
-                            <option value="COD">COD (Bayar di Tempat)</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Catatan (Opsional)</label>
-                        <textarea id="orderNote" placeholder="Contoh: Nasi tidak pakai kecap"></textarea>
-                    </div>
-
-                    <button class="submit-btn" id="submitBtn" onclick="submitOrder()">Pesan Sekarang</button>
-                </div>
-            </div>
-        </div>
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feisty - Pesan Sekarang</title>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Arimo', Arial, sans-serif;
+    }
+    
+    html, body, #app-wrapper {
+      height: 100%;
+      width: 100%;
+    }
+    
+    #app-wrapper {
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(135deg, #fff8f0 0%, #ffe8d6 100%);
+    }
+
+    header {
+      background: linear-gradient(135deg, #FF4500 0%, #DC143C 100%);
+      color: white;
+      padding: 12px 20px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(255, 69, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    header img {
+      height: 70px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .cart-toggle-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #FF4500 0%, #DC143C 100%);
+      color: white;
+      border: none;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(255, 69, 0, 0.4);
+      z-index: 998;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .cart-toggle-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(255, 69, 0, 0.5);
+    }
+
+    .cart-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #dc3545;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      min-width: 20px;
+      height: 20px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 6px;
+    }
+
+    main {
+      flex: 1;
+      padding: 20px;
+      max-width: 100%;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+      font-size: 16px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 3px solid #FF4500;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-msg {
+      background: #fee;
+      color: #c33;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      border-left: 4px solid #c33;
+      line-height: 1.6;
+    }
+
+    .menu-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    @media (min-width: 768px) {
+      .menu-container {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        justify-items: center;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .menu-container {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    
+    .menu-item {
+      width: 100%;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .menu-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 16px rgba(255, 69, 0, 0.15);
+    }
+
+    .menu-image {
+      width: 100%;
+      height: 180px;
+      background: linear-gradient(135deg, #FFE0D6 0%, #FFF0E6 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      overflow: hidden;
+    }
+
+    .menu-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .menu-content {
+      padding: 16px;
+    }
+
+    .menu-name {
+      font-size: 18px;
+      font-weight: bold;
+      color: #1F2937;
+      margin: 0 0 8px 0;
+      line-height: 1.3;
+    }
+
+    .menu-category {
+      display: inline-block;
+      background: #FFE0D6;
+      color: #DC143C;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .menu-desc {
+      font-size: 13px;
+      color: #666;
+      margin: 8px 0;
+      line-height: 1.4;
+      height: 40px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .menu-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .menu-price {
+      font-size: 20px;
+      font-weight: bold;
+      color: #FF4500;
+    }
+
+    .menu-price .original-price {
+      font-size: 14px;
+      color: #999;
+      text-decoration: line-through;
+      margin-right: 8px;
+      font-weight: normal;
+    }
+
+    .menu-price .discount-badge {
+      display: inline-block;
+      background: #dc3545;
+      color: white;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 4px;
+      font-weight: bold;
+    }
+
+    .add-btn {
+      background: linear-gradient(135deg, #FF4500 0%, #DC143C 100%);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .add-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(255, 69, 0, 0.3);
+    }
+
+    .add-btn:active {
+      transform: scale(0.98);
+    }
+
+    .cart-section {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 20px 20px 0 0;
+      padding: 0;
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+      z-index: 999;
+      max-height: 45vh;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .cart-section.open {
+      transform: translateY(0);
+    }
+
+    .cart-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #1F2937;
+      margin: 0;
+      padding: 16px 20px 8px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #cart-items {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 24px;
+    }
+
+    .cart-close-btn {
+      background: none;
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      color: #999;
+      padding: 0;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+
+    .cart-close-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .cart-empty {
+      text-align: center;
+      color: #999;
+      padding: 40px 20px;
+      font-size: 15px;
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+      border-bottom: 1px solid #f0f0f0;
+      gap: 12px;
+    }
+
+    .cart-item:last-child {
+      border-bottom: none;
+    }
+
+    .cart-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .cart-item-name {
+      font-weight: 600;
+      color: #1F2937;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .cart-item-price {
+      color: #FF4500;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .cart-qty {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 8px;
+    }
+
+    .qty-btn {
+      background: #f5f5f5;
+      border: 1px solid #e5e5e5;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #FF4500;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+
+    .qty-btn:hover {
+      background: #FF4500;
+      color: white;
+      border-color: #FF4500;
+    }
+
+    .cart-remove {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .cart-remove:hover {
+      background: #dc2626;
+      color: white;
+    }
+
+    .cart-summary {
+      margin-top: 0;
+      padding: 16px 20px 20px 20px;
+      border-top: 2px solid #FF4500;
+      flex-shrink: 0;
+      background: linear-gradient(to bottom, #fff 0%, #fff9f5 100%);
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 6px 15px;
+      font-size: 15px;
+      color: #4b5563;
+    }
+
+    .summary-row.total {
+      font-size: 20px;
+      font-weight: bold;
+      color: #FF4500;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed #e5e5e5;
+    }
+
+    .checkout-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #FF4500 0%, #DC143C 100%);
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: all 0.3s;
+      box-shadow: 0 4px 12px rgba(255, 69, 0, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .checkout-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 69, 0, 0.4);
+    }
+
+    .checkout-btn:active {
+      transform: translateY(0);
+    }
+
+    .checkout-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Pre-filled customer info banner */
+    .customer-info-banner {
+      background: linear-gradient(135deg, #f0fff4 0%, #dcfce7 100%);
+      border: 1px solid #86efac;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .customer-info-banner .avatar {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, #FF4500 0%, #DC143C 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .customer-info-banner .info {
+      flex: 1;
+    }
+
+    .customer-info-banner .name {
+      font-weight: bold;
+      color: #1F2937;
+      font-size: 16px;
+    }
+
+    .customer-info-banner .phone {
+      color: #666;
+      font-size: 13px;
+    }
+
+    .customer-info-banner .badge {
+      background: #10B981;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body>
+  <div id="app-wrapper">
+   <header><img src="https://imgur.com/E9ya4d5.png" alt="Logo" loading="lazy" onerror="console.error('Logo failed to load:', this.src); this.style.display='none';">
+   </header>
+   <button class="cart-toggle-btn" id="cart-toggle-btn" onclick="toggleCart()">
+    <span style="font-size: 24px;">🛒</span>
+    <span class="cart-badge" id="cart-badge" style="display: none;">0</span>
+   </button>
+   <main>
+    <!-- Customer Info Banner (will be shown if pre-filled) -->
+    <div id="customer-banner" style="display: none;"></div>
+    
+    <div id="menu-list" class="menu-container">
+     <div class="loading">
+      <div class="spinner"></div>
+      <p>MEMUAN MENU...</p>
+     </div>
     </div>
+   </main>
+   <div class="cart-overlay" id="cart-overlay"></div>
+   <div class="cart-section" id="cart-section">
+    <h2 class="cart-title">KERANJANG <button class="cart-close-btn" id="cart-close-btn">x</button></h2>
+    <div id="cart-items" class="cart-empty">
+     KOSONG
+    </div>
+    <div id="cart-summary" style="display: none;">
+     <div class="summary-row"><span>Subtotal</span> <span id="subtotal">Rp 0</span>
+     </div>
+     <div class="summary-row"><span>Ongkir</span> <span id="shipping-cost">Rp 0</span>
+     </div>
+     <div class="summary-row total"><span>Total</span> <span id="total">Rp 0</span>
+     </div><button class="checkout-btn" id="checkout-btn">PILIH METODE PEMBAYARAN</button>
+    </div>
+   </div>
+  </div>
+  <script>
+    // URL GAS - ambil dari config atau parameter URL
+    const urlParams = new URLSearchParams(window.location.search);
+    // GAS URL from parameter (set by bot), or try to get from parent page config, or use default
+    let gasUrl = urlParams.get('gas') || '';
+    
+    // If no gas param, try to get from localStorage (set by index.html)
+    if (!gasUrl) {
+      try {
+        const storedGasUrl = localStorage.getItem('feisty_gas_url');
+        if (storedGasUrl) gasUrl = storedGasUrl;
+      } catch(e) {}
+    }
+    
+    // Fallback to default
+    if (!gasUrl) {
+      gasUrl = 'https://script.google.com/macros/s/1ntEFZH4kaT5gs9e58BEBPbykBZDp42TrzOiM0X3XfvIK0Lssw7lzAS_q/exec';
+    }
 
-    <script src="config.js"></script>
-    <script>
-        // Configuration
-        const GAS_URL = FeistyConfig.GAS_URL;
-        const params = new URLSearchParams(window.location.search);
-        const customerName = params.get('name') || '';
-        const customerPhone = params.get('phone') || '';
+    // Initialize config - load from config.js and server
+    const config = {
+      qris_api_key: typeof FeistyConfig !== 'undefined' ? (FeistyConfig.QRIS_API_KEY || '3a8ad4e906094138a9f6adf8bf920e6907706444bb2546ccbadb3047bb8b09b6') : '3a8ad4e906094138a9f6adf8bf920e6907706444bb2546ccbadb3047bb8b09b6',
+      qris_fee: 1000,
+      ipaymu_key: typeof FeistyConfig !== 'undefined' ? (FeistyConfig.IPAYMU_KEY || '') : '',
+      gas_url_bot: gasUrl,
+      base_shipping_cost: 10000,
+      shipping_cost_per_km: 2000,
+      free_shipping_min_distance: 5,
+      // Payment method settings - loaded from config
+      enable_cod: true,
+      enable_qris: false,
+      enable_ipaymu: true
+    };
 
-        let cart = [];
-        let menuData = [];
-        let config = {};
+    // Ambil customer info dari URL parameters
+    const customerPhone = urlParams.get('phone') || '';
+    const customerName = urlParams.get('nama') || '';
+    
+    // Tampilkan banner customer jika ada
+    if (customerPhone || customerName) {
+      const banner = document.getElementById('customer-banner');
+      const initial = customerName ? customerName.charAt(0).toUpperCase() : '?';
+      banner.innerHTML = `
+        <div class="customer-info-banner">
+          <div class="avatar">${initial}</div>
+          <div class="info">
+            <div class="name">${escapeHtml(customerName || 'Pelanggan')}</div>
+            <div class="phone">${escapeHtml(customerPhone)}</div>
+          </div>
+          <div class="badge">TERVERIFIKASI</div>
+        </div>
+      `;
+      banner.style.display = 'block';
+    }
 
-        // Cart persistence
-        function saveCartToLocalStorage() {
-            try {
-                localStorage.setItem('feisty_cart', JSON.stringify(cart));
-            } catch (err) {
-                console.log('Error saving cart:', err);
-            }
+    // Lokasi toko akan diambil dari data GAS
+    let store_latitude = -6.2088;
+    let store_longitude = 106.8456;
+
+    let menuData = [];
+    let cartData = {};
+    let shippingCost = 0;
+    let customerInfo = null;
+
+    async function loadConfig() {
+      try {
+        const configUrl = gasUrl + '?action=getConfig';
+        const response = await fetch(configUrl);
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Update lokasi toko
+          if (data.latitude && data.longitude) {
+            store_latitude = parseFloat(data.latitude);
+            store_longitude = parseFloat(data.longitude);
+          }
+          
+          // Update ongkir dari spreadsheet
+          if (data.base_shipping_cost) {
+            config.base_shipping_cost = parseFloat(data.base_shipping_cost);
+          }
+          if (data.shipping_cost_per_km) {
+            config.shipping_cost_per_km = parseFloat(data.shipping_cost_per_km);
+          }
+          if (data.free_shipping_min_distance) {
+            config.free_shipping_min_distance = parseFloat(data.free_shipping_min_distance);
+          }
+          
+          // Update payment settings - load from custom config
+          if (data.enable_cod !== undefined) config.enable_cod = data.enable_cod;
+          if (data.enable_qris !== undefined) config.enable_qris = data.enable_qris;
+          if (data.enable_ipaymu !== undefined) config.enable_ipaymu = data.enable_ipaymu;
+          
+          console.log('Config dimuat dari GAS');
+          console.log('  Lokasi:', store_latitude, store_longitude);
+          console.log('  Ongkir:', config.base_shipping_cost, '+', config.shipping_cost_per_km, '/km');
+          console.log('  Pembayaran - COD:', config.enable_cod, 'QRIS:', config.enable_qris, 'IPAYMU:', config.enable_ipaymu);
         }
+      } catch (error) {
+        console.warn('Gagal memuat config dari GAS, menggunakan default');
+      }
+    }
 
-        function restoreCartFromLocalStorage() {
-            try {
-                const saved = localStorage.getItem('feisty_cart');
-                if (saved) {
-                    cart = JSON.parse(saved);
-                    updateCart();
-                    return true;
-                }
-            } catch (err) {
-                console.log('Error restoring cart:', err);
-            }
-            return false;
+    async function loadCustomerInfo() {
+      if (!customerPhone) {
+        console.log('Tidak ada phone di URL, mode guest');
+        return;
+      }
+      
+      try {
+        const customerUrl = gasUrl + '?action=getCustomer&phone=' + encodeURIComponent(customerPhone);
+        const response = await fetch(customerUrl);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.nama) {
+            customerInfo = data;
+            console.log('Customer dimuat:', customerInfo.nama);
+          }
         }
+      } catch (error) {
+        console.warn('Gagal memuat customer info');
+      }
+    }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            if (customerName) document.getElementById('customerName').value = decodeURIComponent(customerName);
-            if (customerPhone) document.getElementById('customerPhone').value = decodeURIComponent(customerPhone);
-            
-            loadMenu();
-            loadConfig();
-            restoreCartFromLocalStorage(); // Restore cart if exists
+    async function loadMenu() {
+      try {
+        // Load config dulu
+        await loadConfig();
+        // Load customer info jika ada
+        await loadCustomerInfo();
+        
+        const menuUrl = gasUrl + '?action=getMenu';
+        const response = await fetch(menuUrl);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!Array.isArray(data) || data.length === 0) {
+          document.getElementById('menu-list').innerHTML = '<div class="error-msg">MENU KOSONG. Pastikan data ada di sheet.</div>';
+          return;
+        }
+        
+        menuData = data.map(item => ({
+          id: String(item.id),
+          name: item.nama || '',
+          desc: item.deskripsi || '',
+          price: item.harga_diskon || item.harga || 0,
+          originalPrice: item.harga_asli || 0,
+          discountPercent: item.diskon_persen || 0,
+          hasDiscount: item.has_discount || false,
+          category: item.kategori || 'Lainnya',
+          image: item.gambar || ''
+        }));
+        
+        renderMenu();
+      } catch (error) {
+        console.error('Error loading menu:', error);
+        document.getElementById('menu-list').innerHTML = '<div class="error-msg">Gagal memuat menu. Cek koneksi atau GAS URL.</div>';
+      }
+    }
+
+    function formatPrice(price) {
+      return price.toLocaleString('id-ID');
+    }
+
+    function renderMenu() {
+      const container = document.getElementById('menu-list');
+      container.innerHTML = '';
+      
+      menuData.forEach(item => {
+        const hasImage = item.image && item.image.startsWith('data:');
+        
+        // Build price HTML
+        let priceHtml = '';
+        if (item.hasDiscount && item.originalPrice > item.price) {
+          priceHtml = `
+            <span class="original-price">Rp ${formatPrice(item.originalPrice)}</span>
+            <span class="discount-badge">-${item.discountPercent}%</span>
+            <br>
+            <span>Rp ${formatPrice(item.price)}</span>
+          `;
+        } else {
+          priceHtml = `Rp ${formatPrice(item.price)}`;
+        }
+        
+        const html = `
+          <div class="menu-item">
+            <div class="menu-image">
+              ${hasImage 
+                ? `<img src="${item.image}" alt="${item.name}" loading="lazy" onerror="this.parentElement.innerHTML='[Gambar]';" />` 
+                : '[Gambar]'}
+            </div>
+            <div class="menu-content">
+              <h3 class="menu-name">${escapeHtml(item.name)}</h3>
+              <span class="menu-category">${escapeHtml(item.category)}</span>
+              <p class="menu-desc">${escapeHtml(item.desc)}</p>
+              <div class="menu-footer">
+                <div class="menu-price">${priceHtml}</div>
+                <button class="add-btn" onclick="addToCart('${item.id}', '${item.name}', ${item.price})">+</button>
+              </div>
+            </div>
+          </div>
+        `;
+        container.innerHTML += html;
+      });
+    }
+
+    function escapeHtml(text) {
+      const map = {
+        '&': '&',
+        '<': '<',
+        '>': '>',
+        '"': '"',
+        "'": '&#039;'
+      };
+      return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function addToCart(id, name, price) {
+      if (!cartData[id]) {
+        cartData[id] = { name, price, qty: 0 };
+      }
+      cartData[id].qty++;
+      updateCart();
+      document.getElementById('cart-section').classList.add('open');
+    }
+
+    function updateCart() {
+      const items = Object.entries(cartData);
+      const cartContainer = document.getElementById('cart-items');
+      const summaryDiv = document.getElementById('cart-summary');
+      const badge = document.getElementById('cart-badge');
+      
+      // Update badge count
+      const totalItems = Object.values(cartData).reduce((sum, item) => sum + item.qty, 0);
+      if (totalItems > 0) {
+        badge.textContent = totalItems;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+      
+      if (items.length === 0) {
+        cartContainer.innerHTML = '<div class="cart-empty">Keranjang kosong</div>';
+        summaryDiv.style.display = 'none';
+        return;
+      }
+      
+      cartContainer.innerHTML = '';
+      let total = 0;
+      
+      items.forEach(([id, item]) => {
+        const subtotal = item.price * item.qty;
+        total += subtotal;
+        
+        const html = `
+          <div class="cart-item">
+            <div class="cart-item-info">
+              <div class="cart-item-name">${escapeHtml(item.name)}</div>
+              <div class="cart-item-price">${formatPrice(item.price)} x ${item.qty}</div>
+            </div>
+            <div class="cart-qty">
+              <button class="qty-btn" onclick="changeQty('${id}', -1)">-</button>
+              <span style="min-width: 30px; text-align: center; font-weight: bold;">${item.qty}</span>
+              <button class="qty-btn" onclick="changeQty('${id}', 1)">+</button>
+            </div>
+            <button class="cart-remove" onclick="removeFromCart('${id}')">x</button>
+          </div>
+        `;
+        cartContainer.innerHTML += html;
+      });
+      
+      document.getElementById('subtotal').textContent = `${formatPrice(total)}`;
+      document.getElementById('total').textContent = `${formatPrice(total + shippingCost)}`;
+      summaryDiv.style.display = 'block';
+    }
+
+    function changeQty(id, change) {
+      cartData[id].qty += change;
+      if (cartData[id].qty <= 0) {
+        delete cartData[id];
+      }
+      updateCart();
+    }
+
+    function removeFromCart(id) {
+      delete cartData[id];
+      updateCart();
+    }
+
+    function generateOrderId() {
+      return 'ORD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function calculateShippingCost(distance) {
+      const baseCost = config.base_shipping_cost;
+      const costPerKm = config.shipping_cost_per_km;
+      const freeMinDistance = config.free_shipping_min_distance || 0;
+      
+      // Gratis ongkir jika jarak <= minimum
+      if (distance <= freeMinDistance && freeMinDistance > 0) {
+        return 0;
+      }
+      
+      const additionalCost = Math.ceil(distance) * costPerKm;
+      return baseCost + additionalCost;
+    }
+
+    async function generateQRIS(amount) {
+      try {
+        const response = await fetch('https://temanqris.com/api/qris/generate', {
+          method: 'POST',
+          headers: {
+            'X-API-Key': config.qris_api_key,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            amount: amount,
+            fee_type: 'rupiah',
+            fee_value: config.qris_fee
+          })
         });
 
-        function loadMenu() {
-            fetch(`${GAS_URL}?action=getMenu`)
-                .then(r => r.json())
-                .then(data => {
-                    menuData = data;
-                    renderMenu();
-                    document.getElementById('loading').style.display = 'none';
-                })
-                .catch(err => {
-                    console.error('Error loading menu:', err);
-                    document.getElementById('menuContainer').innerHTML = '<p style="color:red">Error loading menu</p>';
-                    document.getElementById('loading').style.display = 'none';
-                });
+        if (!response.ok) {
+          throw new Error(`QRIS API error: ${response.status}`);
         }
 
-        function loadConfig() {
-            fetch(`${GAS_URL}?action=getConfig`)
-                .then(r => r.json())
-                .then(data => {
-                    config = data;
-                })
-                .catch(err => console.error('Error loading config:', err));
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error('Gagal generate QRIS');
         }
 
-        function renderMenu() {
-            const grouped = {};
-            menuData.forEach(item => {
-                if (!grouped[item.kategori]) grouped[item.kategori] = [];
-                grouped[item.kategori].push(item);
+        return {
+          success: true,
+          qr_image: data.qr_image,
+          qris_string: data.qris,
+          link_code: data.link_code,
+          amount: data.amount,
+          fee: data.fee,
+          expires_at: data.expires_at
+        };
+      } catch (error) {
+        console.error('Error generating QRIS:', error);
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+    }
+
+    function showPaymentModal() {
+      const modal = document.createElement('div');
+      modal.id = 'payment-modal';
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      `;
+
+      const content = document.createElement('div');
+      content.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      `;
+
+      const title = document.createElement('h2');
+      title.textContent = 'PEMBAYARAN';
+      title.style.cssText = `
+        margin: 0 0 20px 0;
+        font-size: 18px;
+        color: #1F2937;
+        text-align: center;
+      `;
+      content.appendChild(title);
+
+      // Get enabled payment methods from config
+      const enabledPayments = [];
+      if (config.enable_cod) enabledPayments.push({ method: 'COD', label: 'Bayar di Tempat (COD)', color: '#10B981' });
+      if (config.enable_qris) enabledPayments.push({ method: 'QRIS', label: 'QRIS', color: '#7C3AED' });
+      if (config.enable_ipaymu) enabledPayments.push({ method: 'IPAYMU', label: 'IPAYMU', color: '#FF6B00' });
+
+      // If no payment methods enabled, show default IPAYMU
+      if (enabledPayments.length === 0) {
+        enabledPayments.push({ method: 'IPAYMU', label: 'IPAYMU', color: '#FF6B00' });
+      }
+
+      // Create payment buttons dynamically
+      enabledPayments.forEach(payment => {
+        const btn = document.createElement('button');
+        btn.textContent = payment.label;
+        btn.style.cssText = `
+          width: 100%;
+          padding: 16px;
+          margin-bottom: 12px;
+          background: linear-gradient(135deg, ${payment.color} 0%, ${payment.color}dd 100%);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: transform 0.2s;
+        `;
+        btn.onmouseover = () => btn.style.transform = 'translateY(-2px)';
+        btn.onmouseout = () => btn.style.transform = 'translateY(0)';
+        btn.onclick = () => showCustomerForm(payment.method, modal);
+        content.appendChild(btn);
+      });
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'BATAL';
+      cancelBtn.style.cssText = `
+        width: 100%;
+        padding: 12px;
+        background: #f0f0f0;
+        color: #666;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      `;
+      cancelBtn.onmouseover = () => cancelBtn.style.background = '#e0e0e0';
+      cancelBtn.onmouseout = () => cancelBtn.style.background = '#f0f0f0';
+      cancelBtn.onclick = () => modal.remove();
+      content.appendChild(cancelBtn);
+
+      modal.appendChild(content);
+      document.body.appendChild(modal);
+    }
+
+    function showCustomerForm(paymentMethod, modal) {
+      modal.remove();
+      
+      const formModal = document.createElement('div');
+      formModal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        overflow-y: auto;
+      `;
+
+      const formContent = document.createElement('div');
+      formContent.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 450px;
+        width: 90%;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        margin: 20px auto;
+      `;
+
+      const formTitle = document.createElement('h2');
+      formTitle.textContent = 'PENGIRIMAN';
+      formTitle.style.cssText = `
+        margin: 0 0 20px 0;
+        font-size: 18px;
+        color: #1F2937;
+        text-align: center;
+      `;
+      formContent.appendChild(formTitle);
+
+      // Pre-filled values dari URL
+      let prefilledName = customerName;
+      let prefilledPhone = customerPhone;
+      let prefilledAddress = '';
+
+      // Customer info display (if from URL or logged in)
+      if (customerPhone || customerInfo) {
+        const displayName = customerInfo ? customerInfo.nama : customerName;
+        const displayPhone = customerInfo ? customerInfo.phone : customerPhone;
+        const displayAddress = customerInfo ? customerInfo.alamat : '';
+        
+        if (displayAddress) prefilledAddress = displayAddress;
+        
+        const customerDiv = document.createElement('div');
+        customerDiv.style.cssText = `
+          background: #f0fff4;
+          border: 1px solid #86efac;
+          border-radius: 8px;
+          padding: 12px;
+          margin-bottom: 16px;
+        `;
+        customerDiv.innerHTML = `
+          <p style="margin: 0 0 4px 0; font-weight: 600; color: #1F2937;">${escapeHtml(displayName || 'Pelanggan')}</p>
+          <p style="margin: 0; font-size: 13px; color: #666;">${escapeHtml(displayPhone || 'WhatsApp belum terisi')}</p>
+          <p style="margin: 4px 0 0 0; font-size: 13px; color: #666;">${escapeHtml(displayAddress || 'Alamat belum diisi')}</p>
+        `;
+        formContent.appendChild(customerDiv);
+      }
+
+      // Input fields
+      if (!customerName || !customerPhone) {
+        const nameLabel = document.createElement('label');
+        nameLabel.textContent = 'Nama';
+        nameLabel.style.cssText = 'display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: #333;';
+        formContent.appendChild(nameLabel);
+
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = prefilledName || '';
+        nameInput.placeholder = 'Nama lengkap';
+        nameInput.style.cssText = `
+          width: 100%;
+          padding: 10px;
+          margin-bottom: 16px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+          box-sizing: border-box;
+        `;
+        nameInput.id = 'customer-name';
+        formContent.appendChild(nameInput);
+
+        const phoneLabel = document.createElement('label');
+        phoneLabel.textContent = 'WhatsApp';
+        phoneLabel.style.cssText = 'display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: #333;';
+        formContent.appendChild(phoneLabel);
+
+        const phoneInput = document.createElement('input');
+        phoneInput.type = 'tel';
+        phoneInput.value = prefilledPhone || '';
+        phoneInput.placeholder = '08xxx';
+        phoneInput.style.cssText = `
+          width: 100%;
+          padding: 10px;
+          margin-bottom: 16px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+          box-sizing: border-box;
+        `;
+        phoneInput.id = 'customer-phone';
+        formContent.appendChild(phoneInput);
+      }
+
+      const addressLabel = document.createElement('label');
+      addressLabel.textContent = 'Alamat Lengkap';
+      addressLabel.style.cssText = 'display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: #333;';
+      formContent.appendChild(addressLabel);
+
+      const addressInput = document.createElement('textarea');
+      addressInput.value = prefilledAddress || '';
+      addressInput.placeholder = 'Jl. Contoh No. 123, Kelurahan, Kecamatan, Kota';
+      addressInput.style.cssText = `
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 16px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        box-sizing: border-box;
+        resize: vertical;
+        min-height: 80px;
+        font-family: Arimo, Arial, sans-serif;
+      `;
+      addressInput.id = 'customer-address';
+      formContent.appendChild(addressInput);
+
+      const locationLabel = document.createElement('label');
+      locationLabel.textContent = 'Lokasi Pengiriman *WAJIB';
+      locationLabel.style.cssText = 'display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: #333;';
+      formContent.appendChild(locationLabel);
+
+      const locationDisplay = document.createElement('div');
+      locationDisplay.style.cssText = `
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 8px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 13px;
+        background: #f9f9f9;
+        color: #666;
+        text-align: center;
+        min-height: 50px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      `;
+      locationDisplay.textContent = 'Tekan tombol untuk ambil lokasi';
+      formContent.appendChild(locationDisplay);
+
+      let latitude = null;
+      let longitude = null;
+
+      const shareLocBtn = document.createElement('button');
+      shareLocBtn.type = 'button';
+      shareLocBtn.textContent = 'Ambil Lokasi';
+      shareLocBtn.style.cssText = `
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 8px;
+        background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      `;
+      shareLocBtn.onmouseover = () => shareLocBtn.style.transform = 'translateY(-2px)';
+      shareLocBtn.onmouseout = () => shareLocBtn.style.transform = 'translateY(0)';
+      
+      function updateLocationDisplay() {
+        if (latitude && longitude && !isNaN(latitude) && !isNaN(longitude)) {
+          const distance = calculateDistance(store_latitude, store_longitude, latitude, longitude);
+          shippingCost = calculateShippingCost(distance);
+          
+          locationDisplay.innerHTML = `
+            <span style="color: #10B981; font-weight: 600;">Lokasi Terdeteksi</span><br>
+            <span style="font-size: 12px; color: #666; margin-top: 4px;">${latitude.toFixed(4)}, ${longitude.toFixed(4)}</span><br>
+            <span style="font-size: 12px; color: #666; margin-top: 4px;">Jarak: ${distance.toFixed(2)} km${shippingCost === 0 ? ' | GRAtIS!' : ' | Ongkir: ' + formatPrice(shippingCost)}</span>
+          `;
+          shareLocBtn.textContent = 'Lokasi Siap';
+          shareLocBtn.style.background = '#10B981';
+          updateCart();
+        }
+      }
+      
+      shareLocBtn.onclick = (e) => {
+        e.preventDefault();
+        if (navigator.geolocation) {
+          shareLocBtn.textContent = 'Mengambil...';
+          shareLocBtn.disabled = true;
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              latitude = position.coords.latitude;
+              longitude = position.coords.longitude;
+              updateLocationDisplay();
+              shareLocBtn.disabled = false;
+            },
+            (error) => {
+              locationDisplay.innerHTML = `
+                <span style="color: #c33;">Gagal</span><br>
+                <span style="font-size: 12px; color: #666;">Izinkan akses lokasi</span>
+              `;
+              shareLocBtn.textContent = 'Ambil Lokasi';
+              shareLocBtn.style.background = 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)';
+              shareLocBtn.disabled = false;
+            }
+          );
+        } else {
+          locationDisplay.innerHTML = `
+            <span style="color: #c33;">Tidak didukung</span>
+          `;
+        }
+      };
+      formContent.appendChild(shareLocBtn);
+
+      const btnContainer = document.createElement('div');
+      btnContainer.style.cssText = 'display: flex; gap: 12px; margin-top: 20px;';
+
+      const submitBtn = document.createElement('button');
+      submitBtn.textContent = 'BAYAR';
+      submitBtn.style.cssText = `
+        flex: 1;
+        padding: 12px;
+        background: linear-gradient(135deg, #FF4500 0%, #DC143C 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+      `;
+      submitBtn.onmouseover = () => submitBtn.style.transform = 'translateY(-2px)';
+      submitBtn.onmouseout = () => submitBtn.style.transform = 'translateY(0)';
+      
+      let finalName = customerName;
+      let finalPhone = customerPhone;
+      let finalAddress = prefilledAddress;
+
+      submitBtn.onclick = async () => {
+        // Validate location is required
+        if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
+          alert('Lokasi pengiriman WAJIB!\n\nSilakan tekan tombol "Ambil Lokasi" untuk membagikan lokasi Anda.');
+          return;
+        }
+
+        // Get input values if not pre-filled
+        if (!customerName || !customerPhone) {
+          const nameEl = document.getElementById('customer-name');
+          const phoneEl = document.getElementById('customer-phone');
+          const addressEl = document.getElementById('customer-address');
+          
+          if (nameEl) finalName = nameEl.value.trim();
+          if (phoneEl) finalPhone = phoneEl.value.trim();
+          if (addressEl) finalAddress = addressEl.value.trim();
+          
+          if (!finalName || !finalPhone) {
+            alert('Harap lengkapi data: Nama dan WhatsApp');
+            return;
+          }
+        }
+        
+        if (!finalAddress) {
+          const addressEl = document.getElementById('customer-address');
+          if (addressEl) finalAddress = addressEl.value.trim();
+          
+          if (!finalAddress) {
+            alert('Harap lengkapi Alamat');
+            return;
+          }
+        }
+
+        if (paymentMethod === 'QRIS') {
+          submitBtn.disabled = true;
+          submitBtn.textContent = '...';
+          
+          const total = Object.values(cartData).reduce((sum, item) => sum + (item.price * item.qty), 0);
+          const totalWithShipping = total + shippingCost;
+          const qrisResult = await generateQRIS(totalWithShipping);
+          
+          submitBtn.disabled = false;
+          
+          if (qrisResult.success) {
+            showQRISPaymentStep(paymentMethod, finalName, finalPhone, finalAddress, latitude, longitude, formModal, qrisResult);
+          } else {
+            alert('Gagal: ' + qrisResult.error);
+          }
+        } else if (paymentMethod === 'IPAYMU') {
+          // Process IPAYMU payment - Show custom Feisty-styled payment page
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'MEMPROSES...';
+          
+          const total = Object.values(cartData).reduce((sum, item) => sum + (item.price * item.qty), 0);
+          const totalWithShipping = total + shippingCost;
+          
+          try {
+            const response = await fetch(config.gas_url_bot, {
+              method: 'POST',
+              body: JSON.stringify({
+                action: 'createPayment',
+                payment_method: 'IPAYMU',
+                amount: totalWithShipping,
+                customer_name: finalName,
+                customer_phone: finalPhone
+              })
             });
-
-            let html = '';
-            Object.keys(grouped).forEach(cat => {
-                html += `<div class="category">
-                    <div class="category-title">📂 ${cat}</div>
-                    <div class="menu-items">
-                        ${grouped[cat].map(item => `
-                            <div class="menu-item">
-                                <div class="menu-item-image">
-                                    ${item.gambar ? `<img loading="lazy" src="${item.gambar}" alt="${item.nama}" onerror="this.innerHTML='🍽️'">` : '🍽️'}
-                                </div>
-                                <div class="menu-item-content">
-                                    <div class="menu-item-name">${item.nama}</div>
-                                    <div class="menu-item-desc">${item.deskripsi}</div>
-                                    <div class="menu-item-price">
-                                        <div>
-                                            <span class="price">Rp ${item.harga_diskon.toLocaleString('id-ID')}</span>
-                                            ${item.harga_asli > item.harga ? `<div class="original-price">Rp ${item.harga_asli.toLocaleString('id-ID')}</div>` : ''}
-                                        </div>
-                                        ${item.has_discount ? `<span class="discount-badge">${item.diskon_persen}% OFF</span>` : ''}
-                                    </div>
-                                    <div class="quantity-control">
-                                        <button onclick="changeQty(${item.id}, -1)">-</button>
-                                        <input type="number" id="qty-${item.id}" value="1" min="1" max="99">
-                                        <button onclick="changeQty(${item.id}, 1)">+</button>
-                                    </div>
-                                    <button class="add-to-cart-btn" onclick="addToCart(${item.id})">Tambah ke Keranjang</button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
-            });
-
-            document.getElementById('menuContainer').innerHTML = html;
-        }
-
-        function changeQty(itemId, delta) {
-            const input = document.getElementById(`qty-${itemId}`);
-            let val = parseInt(input.value) + delta;
-            if (val < 1) val = 1;
-            if (val > 99) val = 99;
-            input.value = val;
-        }
-
-        function addToCart(itemId) {
-            const item = menuData.find(m => m.id === itemId);
-            const qty = parseInt(document.getElementById(`qty-${itemId}`).value);
             
-            const existing = cart.find(c => c.id === itemId);
-            if (existing) {
-                existing.qty += qty;
+            const paymentData = await response.json();
+            
+            if (paymentData && paymentData.success) {
+              // Show custom Feisty-styled payment page
+              showIPayMUPaymentStep(paymentMethod, finalName, finalPhone, finalAddress, latitude, longitude, formModal, paymentData);
             } else {
-                cart.push({ ...item, qty });
+              alert('Gagal membuat pembayaran IPAYMU: ' + (paymentData.error || 'Unknown error'));
+              submitBtn.disabled = false;
             }
+          } catch (error) {
+            alert('Error: ' + error.message);
+            submitBtn.disabled = false;
+          }
+        } else {
+          // For IPAYMU - process directly
+          processOrder(paymentMethod, finalName, finalPhone, finalAddress, latitude, longitude, formModal);
+        }
+      };
+      btnContainer.appendChild(submitBtn);
 
-            updateCart();
-            saveCartToLocalStorage();
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Batal';
+      cancelBtn.style.cssText = `
+        flex: 1;
+        padding: 12px;
+        background: #f0f0f0;
+        color: #666;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      `;
+      cancelBtn.onmouseover = () => cancelBtn.style.background = '#e0e0e0';
+      cancelBtn.onmouseout = () => cancelBtn.style.background = '#f0f0f0';
+      cancelBtn.onclick = () => formModal.remove();
+      btnContainer.appendChild(cancelBtn);
+
+      formContent.appendChild(btnContainer);
+      formModal.appendChild(formContent);
+      document.body.appendChild(formModal);
+    }
+
+    function showQRISPaymentStep(paymentMethod, customerName, customerPhone, customerAddress, latitude, longitude, formModal, qrisData) {
+      formModal.remove();
+
+      const qrisModal = document.createElement('div');
+      qrisModal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        overflow-y: auto;
+      `;
+
+      const qrisContent = document.createElement('div');
+      qrisContent.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 450px;
+        width: 90%;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        margin: 20px auto;
+        text-align: center;
+      `;
+
+      const qrisTitle = document.createElement('h2');
+      qrisTitle.textContent = 'SCAN QRIS';
+      qrisTitle.style.cssText = `
+        margin: 0 0 16px 0;
+        font-size: 18px;
+        color: #1F2937;
+      `;
+      qrisContent.appendChild(qrisTitle);
+
+      const qrisContainer = document.createElement('div');
+      qrisContainer.style.cssText = `
+        background: linear-gradient(135deg, #F3E8FF 0%, #EDE9FE 100%);
+        border: 3px solid #7C3AED;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+      `;
+
+      const qrImage = document.createElement('img');
+      qrImage.src = qrisData.qr_image;
+      qrImage.alt = 'QRIS Code';
+      qrImage.style.cssText = `
+        width: 250px;
+        height: 250px;
+        border: 3px solid white;
+        border-radius: 8px;
+        margin: 0 auto 12px auto;
+        display: block;
+      `;
+      qrisContainer.appendChild(qrImage);
+
+      const total = Object.values(cartData).reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const totalWithShipping = total + shippingCost;
+      
+      const amountDiv = document.createElement('div');
+      amountDiv.style.cssText = `
+        font-size: 14px;
+        color: #666;
+        line-height: 1.6;
+      `;
+      amountDiv.innerHTML = `
+        <p style="margin: 0; font-weight: 600; color: #1F2937;">${formatPrice(totalWithShipping)}</p>
+        <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">Subtotal: ${formatPrice(total)} + Ongkir: ${formatPrice(shippingCost)}</p>
+      `;
+      qrisContainer.appendChild(amountDiv);
+
+      qrisContent.appendChild(qrisContainer);
+
+      const btnContainer = document.createElement('div');
+      btnContainer.style.cssText = 'display: flex; gap: 12px;';
+
+      const confirmPaymentBtn = document.createElement('button');
+      confirmPaymentBtn.textContent = 'SUDAH BAYAR';
+      confirmPaymentBtn.style.cssText = `
+        flex: 1;
+        padding: 12px;
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+      `;
+      confirmPaymentBtn.onmouseover = () => confirmPaymentBtn.style.transform = 'translateY(-2px)';
+      confirmPaymentBtn.onmouseout = () => confirmPaymentBtn.style.transform = 'translateY(0)';
+      confirmPaymentBtn.onclick = async () => {
+        processOrder(paymentMethod, customerName, customerPhone, customerAddress, latitude, longitude, qrisModal, qrisData);
+      };
+      btnContainer.appendChild(confirmPaymentBtn);
+
+      const backBtn = document.createElement('button');
+      backBtn.textContent = 'Kembali';
+      backBtn.style.cssText = `
+        flex: 1;
+        padding: 12px;
+        background: #f0f0f0;
+        color: #666;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      `;
+      backBtn.onmouseover = () => backBtn.style.background = '#e0e0e0';
+      backBtn.onmouseout = () => backBtn.style.background = '#f0f0f0';
+      backBtn.onclick = () => qrisModal.remove();
+      btnContainer.appendChild(backBtn);
+
+      qrisContent.appendChild(btnContainer);
+      qrisModal.appendChild(qrisContent);
+      document.body.appendChild(qrisModal);
+    }
+
+    // Custom Feisty-styled IPAYMU payment step
+    function showIPayMUPaymentStep(paymentMethod, customerName, customerPhone, customerAddress, latitude, longitude, formModal, paymentData) {
+      formModal.remove();
+
+      const ipaymuModal = document.createElement('div');
+      ipaymuModal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        overflow-y: auto;
+      `;
+
+      const content = document.createElement('div');
+      content.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 450px;
+        width: 90%;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        margin: 20px auto;
+        text-align: center;
+      `;
+
+      const title = document.createElement('h2');
+      title.textContent = 'PEMBAYARAN IPAYMU';
+      title.style.cssText = `
+        margin: 0 0 16px 0;
+        font-size: 18px;
+        color: #FF4500;
+      `;
+      content.appendChild(title);
+
+      // Payment info container - Feisty styled
+      const paymentContainer = document.createElement('div');
+      paymentContainer.style.cssText = `
+        background: linear-gradient(135deg, #FFF8F0 0%, #FFE8D6 100%);
+        border: 2px solid #FF4500;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+      `;
+
+      // Show payment details based on available data
+      let paymentDetailsHtml = '';
+      
+      if (paymentData.va_number) {
+        // Virtual Account
+        paymentDetailsHtml = `
+          <p style="margin: 0 0 8px 0; font-size: 14px; color: #666;">Virtual Account</p>
+          <p style="margin: 0; font-size: 24px; font-weight: bold; color: #FF4500;">${paymentData.va_number}</p>
+        `;
+      } else if (paymentData.qr_image) {
+        // QR Code
+        const qrImage = document.createElement('img');
+        qrImage.src = paymentData.qr_image;
+        qrImage.alt = 'IPAYMU QR';
+        qrImage.style.cssText = 'width: 200px; height: 200px; margin: 0 auto 12px auto; display: block;';
+        paymentContainer.appendChild(qrImage);
+      } else if (paymentData.payment_code) {
+        paymentDetailsHtml = `
+          <p style="margin: 0 0 8px 0; font-size: 14px; color: #666;">Kode Pembayaran</p>
+          <p style="margin: 0; font-size: 20px; font-weight: bold; color: #FF4500;">${paymentData.payment_code}</p>
+        `;
+      } else {
+        paymentDetailsHtml = `
+          <p style="margin: 0; font-size: 14px; color: #666;">Silakan lakukan pembayaran sesuai instruksi</p>
+        `;
+      }
+
+      if (paymentDetailsHtml) {
+        const detailsDiv = document.createElement('div');
+        detailsDiv.innerHTML = paymentDetailsHtml;
+        paymentContainer.appendChild(detailsDiv);
+      }
+
+      const total = Object.values(cartData).reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const totalWithShipping = total + shippingCost;
+
+      const amountDiv = document.createElement('div');
+      amountDiv.style.cssText = `
+        font-size: 14px;
+        color: #666;
+        line-height: 1.6;
+        margin-top: 12px;
+      `;
+      amountDiv.innerHTML = `
+        <p style="margin: 0; font-weight: 600; color: #1F2937; font-size: 18px;">${formatPrice(totalWithShipping)}</p>
+        <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">Subtotal: ${formatPrice(total)} + Ongkir: ${formatPrice(shippingCost)}</p>
+      `;
+      paymentContainer.appendChild(amountDiv);
+
+      content.appendChild(paymentContainer);
+
+      const btnContainer = document.createElement('div');
+      btnContainer.style.cssText = 'display: flex; gap: 12px;';
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = 'SUDAH BAYAR';
+      confirmBtn.style.cssText = `
+        flex: 1;
+        padding: 12px;
+        background: linear-gradient(135deg, #FF4500 0%, #DC143C 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+      `;
+      confirmBtn.onmouseover = () => confirmBtn.style.transform = 'translateY(-2px)';
+      confirmBtn.onmouseout = () => confirmBtn.style.transform = 'translateY(0)';
+      confirmBtn.onclick = async () => {
+        processOrder(paymentMethod, customerName, customerPhone, customerAddress, latitude, longitude, ipaymuModal, paymentData);
+      };
+      btnContainer.appendChild(confirmBtn);
+
+      const backBtn = document.createElement('button');
+      backBtn.textContent = 'Kembali';
+      backBtn.style.cssText = `
+        flex: 1;
+        padding: 12px;
+        background: #f0f0f0;
+        color: #666;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      `;
+      backBtn.onmouseover = () => backBtn.style.background = '#e0e0e0';
+      backBtn.onmouseout = () => backBtn.style.background = '#f0f0f0';
+      backBtn.onclick = () => ipaymuModal.remove();
+      btnContainer.appendChild(backBtn);
+
+      content.appendChild(btnContainer);
+      ipaymuModal.appendChild(content);
+      document.body.appendChild(ipaymuModal);
+    }
+
+    async function processOrder(paymentMethod, customerName, customerPhone, customerAddress, latitude, longitude, formModal, qrisData = null) {
+      const loadingModal = document.createElement('div');
+      loadingModal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1001;
+        overflow-y: auto;
+      `;
+
+      const loadingContent = document.createElement('div');
+      loadingContent.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 40px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        text-align: center;
+        margin: 20px auto;
+      `;
+
+      const spinner = document.createElement('div');
+      spinner.style.cssText = `
+        display: inline-block;
+        width: 50px;
+        height: 50px;
+        border: 4px solid #FF4500;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 20px;
+      `;
+      loadingContent.appendChild(spinner);
+
+      const loadingText = document.createElement('p');
+      loadingText.textContent = 'Memproses...';
+      loadingText.style.cssText = `
+        margin: 0;
+        font-size: 16px;
+        color: #1F2937;
+        font-weight: 600;
+      `;
+      loadingContent.appendChild(loadingText);
+
+      loadingModal.appendChild(loadingContent);
+      document.body.appendChild(loadingModal);
+
+      if (formModal && formModal.remove) {
+        formModal.remove();
+      }
+
+      try {
+        const orderId = generateOrderId();
+        const items = Object.entries(cartData).map(([_, item]) => ({
+          name: item.name,
+          price: item.price,
+          qty: item.qty
+        }));
+        const subtotal = Object.values(cartData).reduce((sum, item) => sum + (item.price * item.qty), 0);
+        const totalWithShipping = subtotal + shippingCost;
+
+        let locationString = '';
+        if (latitude && longitude && !isNaN(latitude) && !isNaN(longitude)) {
+          locationString = `https://maps.google.com/?q=${latitude},${longitude}`;
         }
 
-        function removeFromCart(itemId) {
-            cart = cart.filter(c => c.id !== itemId);
-            updateCart();
-            saveCartToLocalStorage();
+        let qrisInfo = '';
+        if (paymentMethod === 'QRIS' && qrisData && qrisData.success) {
+          qrisInfo = `QRIS: ${qrisData.qris_string}`;
+        }
+        
+        let ipaymuInfo = '';
+        if (paymentMethod === 'IPAYMU' && qrisData && (qrisData.payment_id || qrisData.va_number || qrisData.payment_code)) {
+          ipaymuInfo = `IPAYMU: ${qrisData.payment_id || qrisData.va_number || qrisData.payment_code}`;
         }
 
-        function updateCart() {
-            const cartContent = document.getElementById('cartContent');
-            
-            if (cart.length === 0) {
-                cartContent.innerHTML = '<div class="cart-empty">Belum ada item</div>';
-                document.getElementById('cartSummary').style.display = 'none';
-                return;
-            }
+        const gasWebhookUrl = config.gas_url_bot;
+        
+        const orderPayload = {
+          action: 'ORDER',
+          order_id: orderId,
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          customer_address: customerAddress,
+          latitude: latitude,
+          longitude: longitude,
+          location_url: locationString,
+          items: items,
+          subtotal: subtotal,
+          shipping_cost: shippingCost,
+          discount: 0,
+          total: totalWithShipping,
+          payment_method: paymentMethod,
+          qris_info: qrisInfo,
+          ipaymu_info: ipaymuInfo,
+          timestamp: new Date().toISOString()
+        };
 
-            cartContent.innerHTML = cart.map(item => `
-                <div class="cart-item">
-                    <div class="cart-item-info">
-                        <div class="cart-item-name">${item.nama}</div>
-                        <div class="cart-item-price">Rp ${item.harga_diskon.toLocaleString('id-ID')} x ${item.qty}</div>
-                    </div>
-                    <span class="cart-item-qty">${item.qty}</span>
-                    <button class="cart-item-remove" onclick="removeFromCart(${item.id})">Hapus</button>
-                </div>
-            `).join('');
+        console.log('Sending order:', orderPayload);
 
-            calculateTotal();
-            document.getElementById('cartSummary').style.display = 'block';
-        }
+        const response = await fetch(gasWebhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(orderPayload),
+          mode: 'no-cors'
+        });
 
-        function calculateTotal() {
-            const subtotal = cart.reduce((sum, item) => sum + (item.harga_diskon * item.qty), 0);
-            const shipping = subtotal >= 100000 ? 0 : (config.base_shipping_cost || 10000);
-            const discount = 0;
-            const total = subtotal + shipping - discount;
+        cartData = {};
+        updateCart();
 
-            document.getElementById('subtotal').textContent = `Rp ${subtotal.toLocaleString('id-ID')}`;
-            document.getElementById('shippingCost').textContent = `Rp ${shipping.toLocaleString('id-ID')}`;
-            document.getElementById('discount').textContent = `Rp ${discount.toLocaleString('id-ID')}`;
-            document.getElementById('total').textContent = `Rp ${total.toLocaleString('id-ID')}`;
-        }
+        loadingText.textContent = 'PESANAN DIKIRIM!';
+        loadingText.style.color = '#10B981';
+        spinner.style.display = 'none';
+        
+        const successContent = document.createElement('div');
+        successContent.style.cssText = `
+          font-size: 14px;
+          color: #666;
+          margin-top: 20px;
+          line-height: 1.6;
+        `;
+        
+        successContent.innerHTML = `
+          <p><strong>Order ID:</strong> ${orderId}</p>
+          <p>WhatsApp akan dikirim ke ${customerPhone}</p>
+          <p style="color: #10B981; font-weight: 600; margin-top: 12px;">Terima kasih!</p>
+        `;
+        
+        loadingContent.appendChild(successContent);
 
-        function submitOrder() {
-            const name = document.getElementById('customerName').value.trim();
-            const phone = document.getElementById('customerPhone').value.trim();
-            const address = document.getElementById('customerAddress').value.trim();
-            const method = document.getElementById('paymentMethod').value;
-            const email = document.getElementById('customerEmail')?.value?.trim() || 'noreply@feisty.id';
-            const note = document.getElementById('orderNote').value.trim();
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'TUTUP';
+        closeBtn.style.cssText = `
+          margin-top: 20px;
+          padding: 12px 24px;
+          background: linear-gradient(135deg, #FF4500 0%, #DC143C 100%);
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.2s;
+        `;
+        closeBtn.onmouseover = () => closeBtn.style.transform = 'translateY(-2px)';
+        closeBtn.onmouseout = () => closeBtn.style.transform = 'translateY(0)';
+        closeBtn.onclick = () => loadingModal.remove();
+        loadingContent.appendChild(closeBtn);
 
-            if (!name || !phone || !address || !method) {
-                showAlert('Mohon isi semua data yang diperlukan!', 'error');
-                return;
-            }
+      } catch (error) {
+        console.error('Error:', error);
+        
+        loadingText.textContent = 'GAGAL';
+        loadingText.style.color = '#c33';
+        spinner.style.display = 'none';
+        
+        const errorContent = document.createElement('div');
+        errorContent.style.cssText = `
+          font-size: 14px;
+          color: #666;
+          margin-top: 20px;
+          line-height: 1.6;
+        `;
+        errorContent.innerHTML = `
+          <p>Coba lagi atau hubungi toko.</p>
+        `;
+        loadingContent.appendChild(errorContent);
 
-            if (cart.length === 0) {
-                showAlert('Keranjang masih kosong!', 'error');
-                return;
-            }
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Tutup';
+        closeBtn.style.cssText = `
+          margin-top: 20px;
+          padding: 12px 24px;
+          background: #f0f0f0;
+          color: #666;
+          border: none;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+        `;
+        closeBtn.onclick = () => loadingModal.remove();
+        loadingContent.appendChild(closeBtn);
+      }
+    }
 
-            const subtotal = cart.reduce((sum, item) => sum + (item.harga_diskon * item.qty), 0);
-            const shipping = subtotal >= 100000 ? 0 : (config.base_shipping_cost || 10000);
-            const total = subtotal + shipping;
-            const orderId = 'ORD-' + Date.now();
+    document.getElementById('checkout-btn').addEventListener('click', (e) => {
+      e.preventDefault();
+      if (Object.keys(cartData).length === 0) {
+        alert('Keranjang kosong!');
+        return;
+      }
+      document.getElementById('cart-section').classList.remove('open');
+      showPaymentModal();
+    });
 
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.textContent = 'Memproses...';
+    document.getElementById('cart-close-btn').addEventListener('click', () => {
+      document.getElementById('cart-section').classList.remove('open');
+    });
 
-            const orderData = {
-                action: 'ORDER',
-                customer_name: name,
-                customer_phone: phone,
-                customer_address: address,
-                items: cart.map(item => ({
-                    name: item.nama,
-                    qty: item.qty,
-                    price: item.harga_diskon
-                })),
-                subtotal: subtotal,
-                shipping_cost: shipping,
-                discount: 0,
-                total: total,
-                payment_method: method,
-                order_id: orderId,
-                note: note
-            };
+    function toggleCart() {
+      const cartSection = document.getElementById('cart-section');
+      if (Object.keys(cartData).length === 0) {
+        alert('Keranjang kosong!');
+        return;
+      }
+      cartSection.classList.toggle('open');
+    }
 
-            fetch(GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify(orderData)
-            })
-            .then(r => r.text())
-            .then(data => {
-                // If using gateway payment, initiate payment transaction server-side
-                if (method === 'Midtrans' || method === 'Card') {
-                    initiatePayment(orderId, total, email, phone, method);
-                } else {
-                    successOrder();
-                }
-            })
-            .catch(err => {
-                console.error('Error:', err);
-                showAlert('❌ Gagal mengirim pesanan. Coba lagi!', 'error');
-                btn.disabled = false;
-                btn.textContent = 'Pesan Sekarang';
-            });
-        }
-
-        function initiatePayment(orderId, amount, email, phone, method) {
-            const paymentAction = method === 'Midtrans' ? 'createPaymentMidtrans' : 'createPaymentStripe';
-            
-            fetch(GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: paymentAction,
-                    order_id: orderId,
-                    amount: amount,
-                    customer_email: email,
-                    customer_phone: phone
-                })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success && data.payment_url) {
-                    // Redirect ke payment gateway
-                    window.location.href = data.payment_url;
-                } else {
-                    showAlert('❌ Gagal membuat session pembayaran: ' + (data.error || 'Unknown error'), 'error');
-                    document.getElementById('submitBtn').disabled = false;
-                    document.getElementById('submitBtn').textContent = 'Pesan Sekarang';
-                }
-            })
-            .catch(err => {
-                showAlert('❌ Error payment: ' + err.message, 'error');
-                document.getElementById('submitBtn').disabled = false;
-                document.getElementById('submitBtn').textContent = 'Pesan Sekarang';
-            });
-        }
-
-        function successOrder() {
-            showAlert('✅ Pesanan berhasil dikirim! Admin akan segera menghubungi Anda.', 'success');
-            setTimeout(() => {
-                cart = [];
-                updateCart();
-                document.getElementById('customerAddress').value = '';
-                document.getElementById('paymentMethod').value = '';
-                document.getElementById('orderNote').value = '';
-                document.getElementById('submitBtn').disabled = false;
-                document.getElementById('submitBtn').textContent = 'Pesan Sekarang';
-            }, 2000);
-            alert.className = `alert ${type}`;
-            setTimeout(() => alert.style.display = 'none', 5000);
-        }
-    </script>
-</body>
+    loadMenu();
+  </script>
+ </body>
 </html>

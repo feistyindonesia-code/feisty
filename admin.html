@@ -622,7 +622,7 @@
 
                         <div class="form-group">
                             <label>🔗 Google Apps Script Webhook URL</label>
-                            <input type="url" id="gasUrl" placeholder="https://script.google.com/macros/d/YOUR_SCRIPT_ID/useweb" value="https://script.google.com/macros/d/YOUR_GAS_SCRIPT_ID/useweb">
+                            <input type="url" id="gasUrl" placeholder="https://script.google.com/macros/s/1ntEFZH4kaT5gs9e58BEBPbykBZDp42TrzOiM0X3XfvIK0Lssw7lzAS_q/exec" value="https://script.google.com/macros/s/1ntEFZH4kaT5gs9e58BEBPbykBZDp42TrzOiM0X3XfvIK0Lssw7lzAS_q/exec">
                             <small style="color: #666; margin-top: 5px; display: block;">URL webhook untuk menghubungkan dengan backend Google Apps Script</small>
                         </div>
 
@@ -663,6 +663,36 @@
                                 <input type="password" id="stripeKey" placeholder="sk_...">
                                 <small style="color: #666; margin-top: 5px; display: block;">Untuk integrasi payment gateway Stripe</small>
                             </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>💳 Ipaymu API Key (Optional)</label>
+                            <input type="password" id="ipaymuKey" placeholder="API Key ipaymu">
+                            <small style="color: #666; margin-top: 5px; display: block;">Untuk integrasi payment gateway ipaymu.com</small>
+                        </div>
+                         <div class="form-group">
+                            <label>🔑 QRIS API Key (Optional)</label>
+                            <input type="password" id="qrisApiKey" placeholder="API Key QRIS">
+                            <small style="color: #666; margin-top: 5px; display: block;">Untuk integrasi QRIS payment</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>💳 Pengaturan Metode Pembayaran</label>
+                            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                    <input type="checkbox" id="enableCOD" checked>
+                                    <span>💵 COD (Bayar di Tempat)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                    <input type="checkbox" id="enableQRIS">
+                                    <span>📱 QRIS</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                    <input type="checkbox" id="enableIPAYMU" checked>
+                                    <span>🟧 IPAYMU</span>
+                                </label>
+                            </div>
+                            <small style="color: #666; margin-top: 10px; display: block;">Pilih metode pembayaran yang ingin diaktifkan</small>
                         </div>
 
                         <div class="form-group">
@@ -1248,6 +1278,41 @@ Tanggal: ${new Date(order.timestamp).toLocaleString('id-ID')}
             // Show selected tab
             document.getElementById(tabName).style.display = 'block';
             event.target.classList.add('active');
+            
+            // Load custom config if that tab is selected
+            if (tabName === 'custom-config') {
+                loadCustomConfig();
+            }
+        }
+        
+        async function loadCustomConfig() {
+            // Load custom config from server
+            try {
+                const res = await fetch(`${GAS_URL}?action=getCustomConfig`);
+                const config = await res.json();
+                
+                if (config) {
+                    // Populate form fields
+                    if (config.gas_url) document.getElementById('gasUrl').value = config.gas_url;
+                    if (config.spreadsheet_id) document.getElementById('spreadsheetId').value = config.spreadsheet_id;
+                    if (config.gemini_key) document.getElementById('geminiKey').value = config.gemini_key;
+                    if (config.whatsapp_url) document.getElementById('whatsappUrl').value = config.whatsapp_url;
+                    if (config.whatsapp_device_id) document.getElementById('whatsappDeviceId').value = config.whatsapp_device_id;
+                    if (config.midtrans_key) document.getElementById('midtransKey').value = config.midtrans_key;
+                    if (config.stripe_key) document.getElementById('stripeKey').value = config.stripe_key;
+                    if (config.ipaymu_key) document.getElementById('ipaymuKey').value = config.ipaymu_key;
+                    if (config.qris_api_key) document.getElementById('qrisApiKey').value = config.qris_api_key;
+                    if (config.base_url) document.getElementById('baseUrl').value = config.base_url;
+                    if (config.email_backend) document.getElementById('emailBackend').value = config.email_backend;
+                    
+                    // Payment method checkboxes
+                    if (config.enable_cod !== undefined) document.getElementById('enableCOD').checked = config.enable_cod;
+                    if (config.enable_qris !== undefined) document.getElementById('enableQRIS').checked = config.enable_qris;
+                    if (config.enable_ipaymu !== undefined) document.getElementById('enableIPAYMU').checked = config.enable_ipaymu;
+                }
+            } catch (err) {
+                console.log('Gagal memuat custom config:', err);
+            }
         }
 
         function saveCustomConfig(e) {
@@ -1262,6 +1327,11 @@ Tanggal: ${new Date(order.timestamp).toLocaleString('id-ID')}
                 whatsapp_device_id: document.getElementById('whatsappDeviceId').value,
                 midtrans_key: document.getElementById('midtransKey').value,
                 stripe_key: document.getElementById('stripeKey').value,
+                ipaymu_key: document.getElementById('ipaymuKey').value,
+                qris_api_key: document.getElementById('qrisApiKey').value,
+                enable_cod: document.getElementById('enableCOD').checked,
+                enable_qris: document.getElementById('enableQRIS').checked,
+                enable_ipaymu: document.getElementById('enableIPAYMU').checked,
                 base_url: document.getElementById('baseUrl').value,
                 email_backend: document.getElementById('emailBackend').value,
                 admin_password: document.getElementById('adminPassword').value,
