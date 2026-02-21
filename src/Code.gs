@@ -1845,9 +1845,9 @@ function getConfig() {
     shipping_cost_per_km: settings.shipping_cost_per_km,
     free_shipping_min_distance: settings.free_shipping_min_distance,
     // Payment method settings from custom config
-    enable_cod: customConfig.enable_cod !== 'false',
+    enable_cod: customConfig.enable_cod === 'true',
     enable_qris: customConfig.enable_qris === 'true',
-    enable_ipaymu: customConfig.enable_ipaymu !== 'false'
+    enable_ipaymu: customConfig.enable_ipaymu === 'true'
   };
 }
 
