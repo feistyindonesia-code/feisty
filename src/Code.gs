@@ -422,11 +422,15 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // iPaymu payment
+    // iPaymu payment - THIS IS THE FIX
     if (body.action === 'createPayment') {
-      const result = createIPaymuPayment(body.order_id, body.amount, body.customer_name, body.customer_phone);
+      const result = createIPaymuPayment(body.order_id || 'ORD-' + Date.now(), body.amount, body.customer_name, body.customer_phone);
       return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
     }
+    
+    // If action not recognized, return error JSON instead of "OK"
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Unknown action: ' + body.action })).setMimeType(ContentService.MimeType.JSON);
+    
     const phone = body.number || body.from || body.sender || "";
     const text = (body.message || body.body || body.text || "").trim();
     
@@ -439,7 +443,8 @@ function doPost(e) {
     return ok();
 
   } catch (err) {
-    return ok();
+    // Return error as JSON instead of just "OK"
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
