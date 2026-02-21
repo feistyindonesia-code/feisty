@@ -28,6 +28,8 @@ const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/
 // SIMPLIFIED STATE MANAGEMENT
 const STATE_WAIT_NAME = "WAIT_NAME";
 const STATE_CONVERSATION = "CONVERSATION";
+const STATE_CHAT_AI = "CHAT_AI";
+const STATE_WAIT_ADMIN = "WAIT_ADMIN";
 
 // Bot timeout in milliseconds (15 minutes)
 const BOT_TIMEOUT_MS = 15 * 60 * 1000;
@@ -481,10 +483,45 @@ function handleIncomingWA(phone, text) {
     let customer = getCustomer(phone);
     
     if (!customer) {
-      // New customer: ask for name
-      logToSheet("New customer, saving...", "");
-      saveNewCustomer(phone);
-      sendWA(phone, "👋 Selamat datang di Feisty!\n\nBoleh kami tahu nama Kakak untuk melanjutkan? 😊");
+      // New customer: ask for name first ( DON'T save yet until they provide valid name)
+      logToSheet("New customer, asking for name first...", "");
+      
+      // CEK: Apakah ini sudah adalah balasan nama dari customer?
+      // Validasi dulu sebelum membuat customer
+      const input = text.trim();
+      const validation = validateNameWithAI(input);
+      
+      logToSheet("First message validation:", input + " | isName: " + validation.isName);
+      
+      // Jika input valid sebagai nama → langsung buat customer dan welcome
+      if (validation.isName && validation.confidence >= 0.7) {
+        const name = validation.cleanedName || input;
+        logToSheet("First message is valid name, creating customer:", name);
+        saveNewCustomerWithName(phone, name, STATE_CONVERSATION);
+        
+        const welcomeMessages = [
+          `Woiyee Kak ${name}! 🎉\n\nWelcome to Feisty Family! 🎊\n\nYuk langsung gas order! Klik di bawah:\n\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\natau ketik *menu* untuk lihat menu!`,
+          `Haiii Kak ${name}! ✨\n\nAkhirnya kenal juga! Mau pesan apa? 🍔🍕\n\nLangsung order aja:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nKetik *menu* untuk lihat pilihan lain!`,
+          `Wkwk welcome Kak ${name}! 🎊\n\nSiap-siap ketagihan sama makanan Feisty! 😋\n\nGas order donk:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\natau ketik *menu*!`,
+          `Yo Kak ${name}! 🙌\n\nFeisty tunggu orderan kamu! Mau yang pedes, gurih, atau manis? Semua ada! 🍳\n\nOrder sekarang:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nKetik *menu*!`
+        ];
+        const randomWelcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+        sendWA(phone, randomWelcome);
+        return;
+      }
+      
+      // Jika bukan nama yang valid → tetap minta nama dengan pesan fun
+      // Tapi JANGAN simpan customer dulu
+      logToSheet("First message NOT valid name, rejecting:", input);
+      
+      const rejectionMessages = [
+        `Wkwk Kak, "${input}" kok kayak bukan nama ya? 😅\n\nMau donk ksh tau nama aslinya biar bisa langsung order! 🎯`,
+        `Haha Kak, "${input}" bukan nama yang valid nih. 😂\n\nTulis dong nama lengkap atau nama panggilan Kakak!`,
+        `Woy Kak "${input}" itu apaan? 😆\n\nNama nya aja dulu dong, biar kita bisa lanjut ke menu yummy! 🍕`,
+        `Ketawa Saya Kak, "${input}" kok kayak chat biasa ya. 😅\n\nMau pesan apa? Tulis nama dulu dong!`
+      ];
+      const randomMsg = rejectionMessages[Math.floor(Math.random() * rejectionMessages.length)];
+      sendWA(phone, randomMsg);
       return;
     }
     
@@ -506,10 +543,27 @@ function handleIncomingWA(phone, text) {
     // MAIN LOGIC: Route to appropriate handler based on state
     if (customer.state === STATE_WAIT_NAME) {
       handleWaitName(phone, text, customer);
+    } else if (customer.state === STATE_CHAT_AI) {
+      // Chat AI mode - use knowledge base
+      handleChatAI(phone, text, customer);
+    } else if (customer.state === STATE_WAIT_ADMIN) {
+      // Check if 15 minutes timeout has passed
+      if (customer.last_activity) {
+        const lastActivity = new Date(customer.last_activity).getTime();
+        const now = Date.now();
+        if (now - lastActivity > BOT_TIMEOUT_MS) {
+          // Timeout passed, reset to CONVERSATION
+          updateCustomerState(phone, STATE_CONVERSATION);
+          sendWA(phone, `Hai Kak ${customer.name}! 👋\n\nWaktu chat dengan admin sudah selesai. Ada yang bisa Feisty bantu? 😊`);
+          return;
+        }
+      }
+      // Still in WAIT_ADMIN state - remind about admin
+      sendWA(phone, `📞 *CHAT ADMIN*\n\nHai Kak ${customer.name}! 😊\n\nAdmin akan segera menghubungi Anda. Mohon tunggu sebentar! 🙏\n\nKetik *menu* untuk melihat pilihan layanan lainnya.`);
     } else if (customer.state === STATE_CONVERSATION) {
       handleConversation(phone, text, customer);
     } else {
-      // Unknown state, default to CONVERSATION
+      // Customer exists but no valid state - treat as new conversation
       updateCustomerState(phone, STATE_CONVERSATION);
       handleConversation(phone, text, customer);
     }
@@ -531,29 +585,68 @@ function handleWaitName(phone, text, customer) {
   // DEBUG: Log semua input untuk debugging
   logToSheet("WAIT_NAME input:", input + " | isName: " + validation.isName + " | conf: " + validation.confidence);
   
-  // JIKA AI MENGATAKAN BUKAN NAMA → TOLAK LANGSUNG
+  // JIKA AI MENGATAKAN BUKAN NAMA → TOLAK LANGSUNG DAN JANGAN SIMPAN
   if (!validation.isName) {
     logToSheet("WAIT_NAME REJECTED:", input + " | Reason: " + validation.reason);
-    sendWA(phone, `Maaf Kak, "${input}" bukan nama yang valid. 😊\n\nBoleh coba berikan nama asli Kakak? Nama lengkap atau nama panggilan juga bisa!`);
+    // Tetap di WAIT_NAME - jangan ubah state atau simpan data
+    
+  // Respons lebih fun dan varied
+    const rejectionMessages = [
+      `Wkwk Kak, "${input}" kok kayak bukan nama ya? 😅\n\nMau donk ksh tau nama aslinya biar bisa langsung order! 🎯`,
+      `Haha Kak, "${input}" bukan nama yang valid nih. 😂\n\nTulis dong nama lengkap atau nama panggilan Kakak!`,
+      `Woy Kak "${input}" itu apaan? 😆\n\nNama nya aja dulu dong, biar kita bisa lanjut ke menu yummy! 🍕`,
+      `Ketawa Saya Kak, "${input}" kok kayak chat biasa ya. 😅\n\nMau pesan apa? Tulis nama dulu dong!`
+    ];
+    const randomMsg = rejectionMessages[Math.floor(Math.random() * rejectionMessages.length)];
+    sendWA(phone, randomMsg);
     return;
   }
   
-  // JIKA CONFIDENCE RENDAH → TOLAK
+  // JIKA CONFIDENCE RENDAH → TOLAK DENGAN PESAN FUN
   if (validation.confidence < 0.7) {
     logToSheet("WAIT_NAME LOW CONFIDENCE:", input + " | conf: " + validation.confidence);
-    sendWA(phone, `Maaf Kak, "${input}" terlihat seperti chat biasa. 😊\n\nBoleh kasih nama asli Kakak?`);
+    
+    const lowConfMessages = [
+      `Hmm Kak "${input}" kayaknya masih belum pas nih. 🤔\n\nCoba tulis nama lengkap atau nama panggilan yang lebih jelas donk!`,
+      `Wkwk kurang jelas nih Kak, "${input}" itu siapa? 😆\n\nTulis nama aslinya dong biar Feisty tau siapa yang lagi chat!`
+    ];
+    const randomMsg = lowConfMessages[Math.floor(Math.random() * lowConfMessages.length)];
+    sendWA(phone, randomMsg);
     return;
   }
   
-  // BARU SIMPAN NAMA - hanya jika validasi lulus
+  // ===== VALIDASI LULUS - BARU SIMPAN DATA =====
+  // Hanya di sini data customer disimpan
   const name = validation.cleanedName || input;
   
-  // Update customer dengan nama dan set ke CONVERSATION
-  updateCustomer(phone, name, STATE_CONVERSATION);
+  // CEK: Apakah customer sudah ada di sheet atau belum?
+  // Kalau belum ada → buat baru. Kalau sudah ada → update nama saja
+  let existingCustomer = getCustomer(phone);
+  
+  if (!existingCustomer) {
+    // Customer belum ada → buat baru dengan nama
+    logToSheet("WAIT_NAME: Creating new customer with valid name:", name);
+    saveNewCustomerWithName(phone, name, STATE_CONVERSATION);
+  } else {
+    // Customer sudah ada → update nama dan ubah state
+    logToSheet("WAIT_NAME: Updating existing customer with valid name:", name);
+    updateCustomer(phone, name, STATE_CONVERSATION);
+  }
+  
   logToSheet("WAIT_NAME ACCEPTED - Customer registered:", name + " | conf: " + validation.confidence);
   
-  // Kirim welcome dan salam awal
-  sendWA(phone, `✨ Halo Kak ${name}! ✨\n\nSenang berkenalan dengan Kakak! 🙏\n\nFeisty siap melayani Kakak dengan berbagai pilihan makanan dan minuman lezat. Ada yang bisa saya bantu?`);
+  // Respons welcome yang lebih fun dan menuju ke order
+  const welcomeMessages = [
+    `Woiyee Kak ${name}! 🎉\n\nWelcome to Feisty Family! 🎊\n\nSekarang kita siap mulai petualangan kuliner! Mau makan apa hari ini? 😋\n\nKlik link ini untuk order:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nAtau ketik *menu* untuk melihat pilihan lain!`,
+    
+    `Haiii Kak ${name}! ✨\n\nAkhirnya kenal juga! Nah sekarang mau coba apa? 🍔🍕\n\nFeisty punya menu-menu kece yang wajib dicoba! Langsung order aja:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nKetik *menu* untuk lihat pilihan lain ya!`,
+    
+    `Wkwk welcome Kak ${name}! 🎊\n\nSiap-siap ketagihan sama makanan Feisty! 😋\n\nLangsung gas order donk, klik di bawah:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\natau ketik *menu* untuk layanan lainnya!`,
+    
+    `Yo Kak ${name}! 🙌\n\nFeisty tunggu orderan kamu nih! Mau yang pedes, gurih, atau manis-manis? Semua ada! 🍳\n\nOrder sekarang:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nKetik *menu* untuk melihat pilihan layanan!`
+  ];
+  const randomWelcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+  sendWA(phone, randomWelcome);
 }
 
 // ==================================================
@@ -564,34 +657,130 @@ function handleConversation(phone, text, customer) {
     const textLower = text.toLowerCase();
     const customerName = customer?.name || 'Kak';
     
+    // Tampilkan menu utama jika customer mengirim "menu" atau "halo" atau "hai"
+    if (textLower === 'menu' || textLower === 'halo' || textLower === 'hai' || textLower === 'hi' || textLower === 'hello') {
+      showOrderMenu(phone, customer);
+      return;
+    }
+    
     // Special commands
     if (textLower === 'menu') {
       sendMenuViaWA(phone, customer);
       return;
     }
     
-    if (textLower === 'pesan' || textLower === 'order') {
-      const baseUrl = getAPIKey('base_url', 'https://feisty.my.id');
-      const orderLink = baseUrl + '/order.html?phone=' + encodeURIComponent(customer.phone) + '&nama=' + encodeURIComponent(customer.name);
-      sendWA(phone, `🛒 *PEMESANAN*\n\nBaik Kak ${customerName}, silakan klik link di bawah untuk memilih menu:\n\n➡️ ${orderLink}\n\nData Kakak sudah terisi otomatis! 🎉\n\nMau tambah menu lain? Klik link di atas ya! 😊`);
+    if (textLower === 'pesan' || textLower === 'order' || textLower === 'mau pesan' || textLower === 'mau order') {
+      sendOrderLink(phone, customer);
       return;
     }
     
-    // DETECT if customer asking for menu/photos
+    // Detect if customer asking for menu/photos
     if (isMenuRequest(textLower)) {
       sendMenuViaWA(phone, customer);
       return;
     }
     
-    // AI akan menganalisis FULL message dan menyimpulkan sendiri
-    // apakah pertanyaan sesuai dengan konteks Feisty atau tidak
-    // Kemudian AI memberikan respons yang sesuai
-    const response = getAIResponseWithContextDetection(text, customer);
-    sendWA(phone, response);
+    // Default: always send order link
+    sendOrderLink(phone, customer);
     
   } catch (err) {
     logToSheet("ERROR handleConversation:", err.toString());
-    sendWA(phone, "Maaf, ada kesalahan. Silakan coba lagi! 🙏");
+    // Default ke link order
+    sendOrderLink(phone, customer);
+  }
+}
+
+// Kirim link order dengan auto-fill
+function sendOrderLink(phone, customer) {
+  const customerName = customer?.name || 'Kak';
+  const orderLink = 'https://feisty.my.id/order?phone=' + encodeURIComponent(customer.phone) + '&nama=' + encodeURIComponent(customer.name);
+  sendWA(phone, `🛒 *PEMESANAN*\n\nHai Kak ${customerName}! 🎯\n\nYuk langsung gas order aja! Klik di bawah:\n\n➡️ ${orderLink}\n\nMenu Feisty siap memanjangkan tangan ke meja makan kamu! 🍽️😋`);
+}
+
+// Tampilkan menu order
+function showOrderMenu(phone, customer) {
+  const customerName = customer?.name || 'Kak';
+  const orderLink = 'https://feisty.my.id/order?phone=' + encodeURIComponent(customer.phone) + '&nama=' + encodeURIComponent(customer.name);
+  
+  const menuMessage = `Hai Kak ${customerName}! 👋\n\nSilakan pilih layanan:\n\n1️⃣ *ORDER* - Klik untuk memesan\n   ➡️ ${orderLink}\n\n2️⃣ *MENU* - Lihat daftar menu\n\nKetik angka atau kata di atas untuk memilih! 😊`;
+  
+  sendWA(phone, menuMessage);
+}
+
+// Detect if customer wants to chat with AI
+function isChatAIRequest(textLower) {
+  const chatAIKeywords = [
+    'chat ai', 'chat', 'ngobrol', 'bicara', 'tanya', 'diskusi', 
+    'info', 'pertanyaan', 'penjelasan', 'mau tanya'
+  ];
+  return chatAIKeywords.some(keyword => textLower.includes(keyword));
+}
+
+// Detect if customer wants to contact admin
+function isAdminRequest(textLower) {
+  const adminKeywords = [
+    'hubungi admin', 'ketemu admin', 'komplain', 'keluhan', 'masalah',
+    'admin', 'tidak bisa', 'gagal', 'uang', 'refund', 'cancel'
+  ];
+  return adminKeywords.some(keyword => textLower.includes(keyword));
+}
+
+// Handle admin request - set timeout for 15 minutes
+function handleAdminRequest(phone, customer) {
+  const customerName = customer?.name || 'Kak';
+  
+  // Kirim pesan ke admin
+  const adminMsg = `📞 *PERMINTAAN HUBUNGI ADMIN*\n\nCustomer: ${customerName}\nWA: ${customer.phone}\n\nMohon segera dihubungi!`;
+  sendWA(ADMIN_PHONE, adminMsg);
+  
+  // Set customer state to WAIT_ADMIN dengan timestamp
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sh = ss.getSheetByName(CUSTOMERS_SHEET);
+    const data = sh.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (normalizeNumber(String(data[i][0])) === normalizeNumber(phone)) {
+        const row = i + 1;
+        sh.getRange(row, 6).setValue(STATE_WAIT_ADMIN);
+        sh.getRange(row, 7).setValue(new Date());
+        sh.getRange(row, 9).setValue(new Date());
+        break;
+      }
+    }
+  } catch (err) {
+    logToSheet("ERROR handleAdminRequest:", err.toString());
+  }
+  
+  sendWA(phone, `📞 *HUBUNGI ADMIN*\n\nBaik Kak ${customerName}! Permintaan Anda sudah dikirim ke admin.\n\nAdmin akan menghubungi Anda dalam waktu dekat. Terima kasih! 🙏\n\nNB: Anda bisa tetap chat dengan bot selama menunggu!`);
+}
+
+// Handle Chat AI state
+function handleChatAI(phone, text, customer) {
+  try {
+    const textLower = text.toLowerCase();
+    const customerName = customer?.name || 'Kak';
+    
+    // Detect if customer wants to exit chat AI mode
+    if (textLower === 'keluar' || textLower === 'exit' || textLower === 'kembali' || textLower === 'menu') {
+      updateCustomerState(phone, STATE_CONVERSATION);
+      showMainMenu(phone, customer);
+      return;
+    }
+    
+    // Check if customer wants to contact admin
+    if (isAdminRequest(textLower)) {
+      handleAdminRequest(phone, customer);
+      return;
+    }
+    
+    // Use knowledge-based AI response
+    const response = getKnowledgeAIResponse(text, customer);
+    sendWA(phone, response);
+    
+  } catch (err) {
+    logToSheet("ERROR handleChatAI:", err.toString());
+    sendWA(phone, `Waduh Kak ${customer.name}, ada error nih! 😅\n\nKetik *menu* untuk kembali ke menu utama ya!`);
   }
 }
 
@@ -676,9 +865,8 @@ function sendMenuViaWA(phone, customer) {
     });
     
     // Send footer with order link
-    const baseUrl = getAPIKey('base_url', 'https://feisty.my.id');
-    const orderLink = baseUrl + '/order.html?phone=' + encodeURIComponent(customer.phone) + '&nama=' + encodeURIComponent(customer.name);
-    const footerMsg = `━━━━━━━━━━━━━━━━━━━━━\n\n📝 *Untuk Memesan*\n\nSilakan klik link di bawah untuk order:\n\n➡️ ${orderLink}\n\nAtau ketik *pesan* untuk langsung ke halaman order.\n\nTerima kasih telah memilih Feisty! 🙏`;
+    const orderLink = 'https://feisty.my.id/order?phone=' + encodeURIComponent(customer.phone) + '&nama=' + encodeURIComponent(customer.name);
+    const footerMsg = `━━━━━━━━━━━━━━━━━━━━━\n\n📝 *Untuk Memesan*\n\nGas langsung klik link di bawah ya! 🎯\n\n➡️ ${orderLink}\n\nAtau ketik *pesan* buat langsung ke halaman order! 😋\n\nFeisty tunggu orderan Kak ${customer.name}! 🍕🚀`;
     
     sendWA(phone, footerMsg);
     
@@ -936,33 +1124,7 @@ function fallbackContextDetection(message) {
 // ==================================================
 function validateNameWithAI(input) {
   try {
-    const prompt = `Analyze the following input and determine if it's a REAL NAME or NOT.
-
-CONTEXT:
-- This is from an Indonesian customer
-- Could be full name, nickname, first name only, or any real name
-- Indonesian names, Arabic names, English names all accepted
-- But NOT if it's: greeting, question, sentence, random words, emojis only, etc.
-
-INPUT: "${input}"
-
-RESPOND with ONLY a JSON (no markdown, no extra text):
-{
-  "isName": true/false,
-  "cleanedName": "the name if valid, null if not",
-  "confidence": 0.0-1.0,
-  "reason": "brief reason in Indonesian"
-}
-
-Examples:
-- "Budi" → {"isName": true, "cleanedName": "Budi", "confidence": 1.0, "reason": "Nama Indonesia valid"}
-- "Siti Nur Azizah" → {"isName": true, "cleanedName": "Siti Nur Azizah", "confidence": 1.0, "reason": "Nama lengkap Indonesia"}
-- "Halo" → {"isName": false, "cleanedName": null, "confidence": 0.95, "reason": "Ini greeting bukan nama"}
-- "Apa kabar?" → {"isName": false, "cleanedName": null, "confidence": 0.99, "reason": "Ini pertanyaan bukan nama"}
-- "123" → {"isName": false, "cleanedName": null, "confidence": 0.98, "reason": "Hanya angka, bukan nama"}
-- "R4h4y0" → {"isName": false, "cleanedName": null, "confidence": 0.85, "reason": "Kombinasi huruf-angka aneh"}
-- "Muhammad Ali" → {"isName": true, "cleanedName": "Muhammad Ali", "confidence": 1.0, "reason": "Nama valid"}
-- "😊😊😊" → {"isName": false, "cleanedName": null, "confidence": 1.0, "reason": "Hanya emoji"}`;
+    const prompt = "Analyze this input and determine/extract the customer's NAME. CONTEXT: - Bot asked: Boleh kami tahu nama Kakak? or Siapa nama Kakak? - Customer replied with this input - Your job is to extract the ACTUAL NAME or determine if it's NOT a name. INPUT: " + input + ". TUGAS KAMU: 1. Kalau input adalah nama (full name, first name, nickname) → isName: true, cleanedName: nama tersebut. 2. Kalau input adalah frasa seperti 'nama saya X', 'nama aku X', 'nama gw X', 'nama gue X' → EXTRACT nama-nya saja (X). 3. Kalau input adalah greeting/pertanyaan/bukan nama → isName: false. CONTOH HASIL YANG BENAR: - Budi → {isName: true, cleanedName: Budi, confidence: 1.0, reason: Nama valid}. - Siti Nur Azizah → {isName: true, cleanedName: Siti Nur Azizah, confidence: 1.0, reason: Nama lengkap}. - nama saya Akbar → {isName: true, cleanedName: Akbar, confidence: 0.98, reason: Extracted nama dari frasa nama saya}. - nama aku Siti → {isName: true, cleanedName: Siti, confidence: 0.98, reason: Extracted nama dari frasa nama aku}. - nama gw Budi → {isName: true, cleanedName: Budi, confidence: 0.98, reason: Extracted nama dari frasa nama gw}. - nama gue Anis → {isName: true, cleanedName: Anis, confidence: 0.98, reason: Extracted nama dari frasa nama gue}. - Halo → {isName: false, cleanedName: null, confidence: 0.95, reason: Greeting bukan nama}. - saya tidak tahu → {isName: false, cleanedName: null, confidence: 0.99, reason: Frasa bukan nama}. - nama saya → {isName: false, cleanedName: null, confidence: 0.95, reason: Tidak ada nama}. - 123 → {isName: false, cleanedName: null, confidence: 0.98, reason: Angka bukan nama}. - Akbar → {isName: true, cleanedName: Akbar, confidence: 1.0, reason: Nama valid}.";;
 
     const payload = {
       contents: [{
@@ -1029,51 +1191,108 @@ Examples:
 // Fallback validation jika AI gagal - SANGAT KETAT
 function fallbackNameValidation(input) {
   const trimmed = input.trim();
+  const lower = trimmed.toLowerCase();
   
-  // SANGAT KETAT: Minimal 3 karakter
-  if (trimmed.length < 3) {
-    return { isName: false, cleanedName: null, confidence: 0.95, reason: "Terlalu pendek (min 3 karakter)" };
+  // CEK KHUSUS: Jika input mengandung frasa "nama saya X" atau "nama aku X", extract nama-nya
+  const namaSayaMatch = lower.match(/^nama\s+saya\s+(.+)$/i);
+  if (namaSayaMatch && namaSayaMatch[1] && namaSayaMatch[1].trim().length >= 2) {
+    const extractedName = namaSayaMatch[1].trim();
+    // Validasi basic: tidak boleh angka saja
+    if (!/^\d+$/.test(extractedName) && extractedName.length >= 2 && extractedName.length <= 30) {
+      return { isName: true, cleanedName: extractedName, confidence: 0.9, reason: "Extracted dari frasa 'nama saya'" };
+    }
+  }
+  
+  const namaAkuMatch = lower.match(/^nama\s+aku\s+(.+)$/i);
+  if (namaAkuMatch && namaAkuMatch[1] && namaAkuMatch[1].trim().length >= 2) {
+    const extractedName = namaAkuMatch[1].trim();
+    if (!/^\d+$/.test(extractedName) && extractedName.length >= 2 && extractedName.length <= 30) {
+      return { isName: true, cleanedName: extractedName, confidence: 0.9, reason: "Extracted dari frasa 'nama aku'" };
+    }
+  }
+  
+  const namaGwMatch = lower.match(/^nama\s+(gw|gue|gue)\s+(.+)$/i);
+  if (namaGwMatch && namaGwMatch[2] && namaGwMatch[2].trim().length >= 2) {
+    const extractedName = namaGwMatch[2].trim();
+    if (!/^\d+$/.test(extractedName) && extractedName.length >= 2 && extractedName.length <= 30) {
+      return { isName: true, cleanedName: extractedName, confidence: 0.9, reason: "Extracted dari frasa 'nama gw/gue'" };
+    }
+  }
+  
+  // SANGAT KETAT: Minimal 2 karakter
+  if (trimmed.length < 2) {
+    return { isName: false, cleanedName: null, confidence: 0.95, reason: "Terlalu pendek (min 2 karakter)" };
   }
   
   // Reject jika hanya angka
   if (/^\d+$/.test(trimmed)) {
-    return { isName: false, cleanedName: null, confidence: 0.95, reason: "Hanya angka" };
+    return { isName: false, cleanedName: null, confidence: 0.95, reason: "Hanya angka bukan nama" };
   }
   
   // Reject jika hanya emoji
   if (/^[\p{Emoji}]+$/u.test(trimmed)) {
-    return { isName: false, cleanedName: null, confidence: 1.0, reason: "Hanya emoji" };
+    return { isName: false, cleanedName: null, confidence: 1.0, reason: "Hanya emoji bukan nama" };
   }
   
-  // Reject jika terlalu panjang
-  if (trimmed.length > 35) {
-    return { isName: false, cleanedName: null, confidence: 0.9, reason: "Terlalu panjang" };
+  // Reject jika terlalu panjang (> 30 karakter)
+  if (trimmed.length > 30) {
+    return { isName: false, cleanedName: null, confidence: 0.9, reason: "Terlalu panjang untuk nama" };
   }
   
-  // Reject jika mengandung angka di tengah (seperti budi123)
+  // Reject jika mengandung angka di tengah (seperti budi123, r4h4y0)
   if (/[a-zA-Z]+\d+[a-zA-Z]*/.test(trimmed) || /\d+[a-zA-Z]+/.test(trimmed)) {
-    return { isName: false, cleanedName: null, confidence: 0.9, reason: "Mengandung angka di tengah" };
+    return { isName: false, cleanedName: null, confidence: 0.9, reason: "Kombinasi huruf-angka bukan nama valid" };
+  }
+  
+  // Reject FRASA UMUM yang sering disalahgunakan sbg nama
+  const rejectPhrases = [
+    // Greeting
+    'halo', 'hai', 'hi', 'hey', 'hello', 'assalamualaikum', 'wassalam', 'assalam', 'pagi', 'siang', 'sore', 'malam', 
+    // Pertanyaan dan jawaban
+    'apa', 'siapa', 'kapan', 'dimana', 'bagaimana', 'berapa', 'kenapa', 'mengapa', 'bilang', 'tanya',
+    'iya', 'ya', 'ga', 'gak', 'ngga', 'enggak', 'tidak', 'nggak', 'g', 'y', 'n', 'ok', 'oke', 'sip', 'sipp', 'sip', 'good', 'nice', 'great', 'benar', 'salah',
+    // Pronoun dan diri sendiri
+    'saya', 'aku', 'gw', 'gue', 'dgua', 'gua', 'aq', 'q', '本人', 'watashi', 'ore', 'boku',
+    // Frasa yang bukan nama - MENTAH
+    'nama', 'tidak tahu', 'ntah', 'g tau', 'gatau', 'ga tau', 'ga tahu', 'enggak tahu', 'nggak tahu', 
+    'mau pesan', 'mau order', 'mau beli', 'pingin pesan', 'ingin pesan',
+    'lihat menu', 'lihat daftar', 'lihat harga', 'lihat foto', 'tampil menu', 'tampilin menu',
+    'test', 'coba', 'cek', 'lihat', 'menu', 'order', 'beli', 'belanja',
+    // Kata non-Indonesia/Inggris
+    '试试', 'テスト', '테스트', 'тест',
+    // Kata yang sering salah input
+    'delivery', 'kirim', 'antar', 'cod', 'qris', 'bayar', 'transfer',
+    // Frasa lengkap yang bukan nama
+    'tidak tahu', 'g tau', 'gatau', 'ga tau', 'bukan nama', 'ini nama', 'pake nama',
+    'nama saya', 'nama aku', 'nama gw', 'nama gue', 'salah input', 'salah ketik',
+    'udah punya', 'sudah punya', 'udah daftar', 'sudah daftar', 'pernah pesan',
+    'pertama kali', 'baru pertama', 'belum pernah', 'udah pernah',
+    // Frasa yang sering digunakan untuk avoid
+    'saya tidak tahu', 'gw tidak tahu', 'g tau deh', 'gatau deh'
+  ];
+  
+  // Cek semua frasa reject
+  for (let phrase of rejectPhrases) {
+    if (lower.includes(phrase)) {
+      return { isName: false, cleanedName: null, confidence: 0.95, reason: "Frasa bukan nama: " + phrase };
+    }
   }
   
   // Reject kata-kata chat umum yang sering disalahgunakan
   const chatWords = [
-    'halo', 'hai', 'hi', 'hey', 'hello', 'assalamualaikum', 'wassalam',
-    'apa', 'siapa', 'kapan', 'dimana', 'bagaimana', 'berapa', 'kenapa',
-    'iya', 'ya', 'ga', 'gak', 'ngga', 'enggak', 'tidak', 'nggak', 'g',
-    'ok', 'oke', 'sip', 'sipp', 'good', 'nice', 'great',
-    'si', 'yg', 'dgn', 'tp', 'tpi', 'sdh', 'udah', 'blm', 'belum',
-    'bisa', 'gk', 'bs', 'jd', 'jdi', 'utk', 'untuk', 'dari',
-    'test', 'coba', 'cek', '试试', 'テスト'
+    'halo', 'hai', 'hi', 'hey', 'hello', 'assalamualaikum', 'wassalam', 'assalam', 'pagi', 'siang', 'sore', 'malam', 
+    'apa', 'siapa', 'kapan', 'dimana', 'bagaimana', 'berapa', 'kenapa', 'mengapa', 'bilang', 'tanya',
+    'iya', 'ya', 'ga', 'gak', 'ngga', 'enggak', 'tidak', 'nggak', 'g', 'y', 'n', 'ok', 'oke', 'sip', 'sipp', 'sip', 'good', 'nice', 'great', 'benar', 'salah',
+    'si', 'yg', 'dgn', 'tp', 'tpi', 'sdh', 'udah', 'blm', 'belum', 'bisa', 'gk', 'bs', 'jd', 'jdi', 'utk', 'untuk', 'dari', 'denger', 'dong', 'nih', 'tuh',
+    'test', 'coba', 'cek', 'lihat', 'lihat menu', 'menu', 'mau pesan', 'order', 'beli', 'belanja',
+    '试试', 'テスト', '테스트', 'тест',
+    'nama', 'saya', 'aku', 'gw', 'gue', 'd Gua', 'salam', 'pesen', 'orderan', 'delivery', 'kirim'
   ];
   
-  const lower = trimmed.toLowerCase();
-  
-  // Jika input pendek dan seluruhnya adalah chat words
-  if (trimmed.length <= 5) {
-    for (let word of chatWords) {
-      if (lower === word) {
-        return { isName: false, cleanedName: null, confidence: 0.95, reason: "Chat word: " + word };
-      }
+  // Jika input adalah chat word tunggal
+  for (let word of chatWords) {
+    if (lower === word || lower === word + ' ' || ' ' + lower === ' ' + word) {
+      return { isName: false, cleanedName: null, confidence: 0.95, reason: "Chat word bukan nama: " + word };
     }
   }
   
@@ -1084,8 +1303,8 @@ function fallbackNameValidation(input) {
     for (let w of words) {
       if (chatWords.includes(w)) chatCount++;
     }
-    // Jika > 50% kata adalah chat words, reject
-    if (chatCount >= words.length / 2) {
+    // Jika > 30% kata adalah chat words, reject
+    if (chatCount >= Math.ceil(words.length * 0.3)) {
       return { isName: false, cleanedName: null, confidence: 0.9, reason: "Terlalu banyak chat words" };
     }
   }
@@ -1093,6 +1312,11 @@ function fallbackNameValidation(input) {
   // Validasi dasar: harus ada minimal 2 huruf berurutan
   if (!/[a-zA-Z\p{L}]{2,}/u.test(trimmed)) {
     return { isName: false, cleanedName: null, confidence: 0.9, reason: "Minimal 2 huruf berurutan" };
+  }
+  
+  // Validasi: tidak boleh hanya 1 kata yang terlalu pendek (kecuali nama panjang)
+  if (trimmed.split(/\s+/).length === 1 && trimmed.length < 3) {
+    return { isName: false, cleanedName: null, confidence: 0.9, reason: "Nama terlalu pendek" };
   }
   
   // Jika lolos semua validasi ketat, terima sebagai nama
@@ -1246,9 +1470,9 @@ function getFallbackResponse(name) {
 }
 
 // ==================================================
-// AI RESPONSE WITH CONTEXT DETECTION (AI concludes & responds to ALL chats)
+// FUN AI RESPONSE - RESPONDS TO ALL CHATS
 // ==================================================
-function getAIResponseWithContextDetection(userMessage, customer) {
+function getFunAIResponse(userMessage, customer) {
   try {
     // Get knowledge base
     const knowledgeBase = getKnowledgeBaseFormatted();
@@ -1258,75 +1482,57 @@ function getAIResponseWithContextDetection(userMessage, customer) {
     const customerName = customer?.name || 'Kak';
     const customerPhone = customer?.phone || '';
     
-    // Build prompt for AI to analyze message context and CONCLUDE
-    // AI will determine if question is Feisty-related or not
-    // Then respond accordingly - ALWAYS RESPOND to all chats
-    const systemPrompt = `Anda adalah Customer Service Bot Feisty, layanan pemesanan makanan dan minuman online yang ramah dan helpful.
+    // Build fun, casual, marketing-oriented prompt
+    const systemPrompt = `Kamu adalah Feisty Bot - customer service yang fun, kasual, penuh canda, dan target-nya adalah clos/order! 🎯
 
 IDENTITAS:
-- Nama Bot: Feisty CS Bot
+- Nama Bot: Feisty (bisa自称 "aku", "saya", "Feisty")
 - Nama Customer: ${customerName}
-- Customer Status: ${isKnownCustomer ? 'SUDAH TERDAFTAR' : 'BARU/BELUM TERDAFTAR'}
-- Bahasa: Indonesian (casual & ramah)
+- Customer Status: ${isKnownCustomer ? 'SUDAH KENAL' : 'BARU'}
+- Bahasa: Indonesian casual ala anak muda yang friendly
 
 TENTANG FEISTY:
-- Feisty adalah bisnis makanan dan minuman (F&B)
-- Menyediakan berbagai pilihan makanan dan minuman berkualitas
-- Harga terjangkau (Rp 15.000 - Rp 100.000)
-- Pengiriman tersedia dengan biaya ongkir berdasarkan jarak
-- Terima pembayaran via COD, QRIS, dan IPAYMU
-- Minimal pesan Rp 50.000 untuk delivery
-- Link order: feisty.my.id/order.html
+- Feisty adalah tempat makanan & minuman kece
+- Menu andalan: berbagai pilihan makanan & minuman yummy
+- Harga: Rp 15.000 - Rp 100.000 (terjangkau!)
+- Pengiriman: available dengan ongkir based jarak
+- Pembayaran: QRIS, COD, IPAYMU
+- Minimal order: Rp 50.000 untuk delivery
+- Link Order: https://feisty.my.id/order
 
-TUGAS ANDA:
-1. ANALISA pesan customer untuk menyimpulkan konteks
-2. TENTUKAN apakah pertanyaan terkait dengan Feisty atau TIDAK
-3. BERIKAN respons yang sesuai - SELALU RESPON semua chat
+PERSONALITAS:
+1. FUN & CASUAL: Gunakan emoji banyak, kadang jokes, kadang Typo故意
+2. PENUH CANDA: Bikin customer ketawa atau atleast senyum
+3. RAMAH: Always positive and helpful
+4. GOAL ORIENTED: Selalu arahin ke order dengan smooth
+5. KALAU ADA YANG ORDER - excited dan langsung konfirmasi
 
-KATEGORI & CARA MERESPOND:
-
-A) JIKA PERTANYAAN TENTANG FEISTY (menu, harga, pesan, ongkir, pembayaran, delivery, promo, CS Feisty):
-   - Berikan informasi lengkap tentang Feisty
-   - Tawarkan link order jika mau pesan
-   - Contoh: "Betul Kak, Feisty menyediakan... Mau pesan? Klik: feisty.my.id/order.html"
-
-B) JIKA PERTANYAAN TIDAK TERKAIT FEISTY (promo bisnis lain, cs perusahaan lain, topik lain):
-   - Tetap sopan dan helpful
-   - Akui topik yang dibicarakan customer
-   - Sekaligus arahkan kembali ke Feisty dengan halus
-   - Contoh: "Maaf Kak, itu tentang [topik]. Untuk Feisty, ada yang bisa saya bantu? 😊"
-
-C) JIKA CHAT TIDAK JELAS/ANEH/PANJANG (bisa dari bot lain atau conversation lain):
-   - Tetaprespon dengan sopan
-   - Tawarkan bantuan terkait Feisty
-   - Jangan menolak atau menunjukkan kecurigaan
-   - Contoh: "Baik Kak ${customerName}, ada yang bisa Feisty bantu? Mau pesan makanan/minuman? 🍽️"
-
-D) JIKA GREETING/SAKIT HATI:
-   - Respon dengan salam hangat
-   - Tawarkan bantuan
-
-PENGETAHUAN TENTANG FEISTY:
-${knowledgeBase}
+CARA MERESPON:
+- JANGAN pernah拒绝对话 - selalu respond
+- JANGAN pernah bilann"maaf saya hanya bisa bantu untuk Feisty" - KAMU BISA NGOBROLIN APAPUN!
+- Kalau customer mau order → langsung kirim link: https://feisty.my.id/order?phone=${encodeURIComponent(customerPhone)}&nama=${encodeURIComponent(customerName)}
+- Kalau customer nanya tentang Feisty → kasih info lengkap + tawarkan order
+- Kalau customer cerita tentang hari mereka → listen & respond with empathy + offer food
+- Kalau customer nanya hal random/umum → tetap respond dengan fun + arahin ke Feisty
+- JANGAN monotone - vary your responses!
 
 CONTOH RESPONS:
-- Customer: "Harga nasi goreng berapa?" → Feisty-related → Berikan info harga & tawarkan order
-- Customer: "Saya dari Gojek, mau ditawarkan kerja" → Bukan Feisty → "Wah menarik! Untuk info kerja Feisty, bisa hubungi admin ya. Ada yang Feisty bantu untuk pemesanan? 😊"
-- Customer: "Haiii" → Greeting → "Halo Kak ${customerName}! 👋 Ada yang bisa Feisty bantu? 😊"
-- Customer: [Pesan panjang aneh] → Tetaprespon → "Baik Kak ${customerName}, saya siap membantu! Mau pesan apa hari ini? 🍽️"
-- Customer: "Promo Hari ini apa?" → Feisty-related → Berikan info promo Feisty
+- Customer: "Harga nasi goreng berapa?" → "Wkwk budget腓 Rp 25rb-50rb ya Kak ${customerName}! Murah bingits! 🍚 Langsung gas order sini: https://feisty.my.id/order"
+- Customer: "Cuaca hari ini panas banget" → "Wkwk iya Kak ${customerName}! Panas gini enaknya pesan ES atau ICE CREAM dari Feisty! 😎🍦 Langsung order: https://feisty.my.id/order"
+- Customer: "Lagi suntuk nih" → "Wkwk suntuk? Feisty punya remedy-nya! 🍕🔥 Pesan aja makanan kesukaan, pasti happy! Mau apa hari ini? Order: https://feisty.my.id/order"
+- Customer: "Apa kabar?" → "Baik bangett thanks Kak ${customerName}! 😄 Mau order apa hari ini? Feisty tunggu orderan kamu! 🎯"
+- Customer: "Bisa delivery ke Bandung?" → "Bisa Kak! Feisty kirim ke mana aja asal ada ongkirnya. 🍕 Mau yang mana? Langsung order: https://feisty.my.id/order"
 
-INSTRUKSI:
-1. ANALISA dulu konteks pesan customer
-2. TENTUKAN kategori (Feisty-related atau tidak)
-3. BERIKAN respons yang sesuai - JANGAN PERNAH DIAM/TIDAK MERESPON
-4. Respons MAKSIMAL 300 karakter
-5. Gunakan bahasa casual dengan emoji
-6. SELALU hospitality dan helpful - TIDAK PERNAH MENOLAK
+JANGAN LUPA:
+- Selalu reply dalam bahasa Indonesia casual
+- Gunakan emoji yang sesuai
+- Tujuan utama: customer ORDER!
+- Link order WAJIB ada di respons (kecuali kalau memang lg obrolin hal lain, tapi tetep arahin)
+- MAKSIMAL 300 karakter
 
 Pesan Customer: "${userMessage}"
 
-Sekarang, ANALISA dan BERIKAN respons yang sesuai (maksimal 300 karakter, dengan emoji):`;
+Sekarang respons dalam Bahasa Indonesia casual, fun, dengan emoji, dan arahin ke order!`;
 
     const payload = {
       contents: [{
@@ -1337,7 +1543,7 @@ Sekarang, ANALISA dan BERIKAN respons yang sesuai (maksimal 300 karakter, dengan
     const geminiKey = getAPIKey('gemini_key', '');
     if (!geminiKey) {
       Logger.log('Warning: Gemini API key not configured');
-      return `Halo Kak ${customerName}! 😊 Ada yang bisa Feisty bantu? Mau pesan makanan atau minuman? 🍽️`;
+      return `Halo Kak ${customerName}! 😊 Feisty sini! Mau pesan apa hari ini? 🍕🍔 Langsung gas ke: https://feisty.my.id/order`;
     }
     const url = GEMINI_API_URL + "?key=" + geminiKey;
     const options = {
@@ -1357,11 +1563,76 @@ Sekarang, ANALISA dan BERIKAN respons yang sesuai (maksimal 300 karakter, dengan
       return aiResponse.substring(0, 500);
     }
     
-    return getFallbackResponse(customerName);
+    // Fallback if no response
+    return getFunFallbackResponse(customerName);
     
   } catch (err) {
-    logToSheet("Gemini Context Detection Error:", err.toString());
-    return `Halo Kak ${customer?.name || 'Kak'}! 😊 Ada yang bisa Feisty bantu? Mau pesan makanan atau minuman? 🍽️`;
+    logToSheet("Gemini Fun Response Error:", err.toString());
+    return getFunFallbackResponse(customer?.name || 'Kak');
+  }
+}
+
+function getFunFallbackResponse(name) {
+  const responses = [
+    `Wkwk Kak ${name}! Aku lagi belajar nih, tapi Feisty siap bantu! 😄\n\nMau coba menu apa? Gas order: https://feisty.my.id/order`,
+    `Hehe Kak ${name}, Feisty butuh kamu di order! 🍕\n\nLangsung klik: https://feisty.my.id/order`,
+    `Woy Kak ${name}, jangan main-main! Langsung order Feisty aja! 😆\n\nhttps://feisty.my.id/order`,
+    `Kak ${name}, Feisty tunggu orderan kamu nih! 🎯\n\nGas: https://feisty.my.id/order`
+  ];
+  
+  return responses[Math.floor(Math.random() * responses.length)];
+}
+
+// AI Response yang menggunakan knowledge dari sheet (tidak mengarang)
+function getKnowledgeAIResponse(userMessage, customer) {
+  try {
+    const customerName = customer?.name || 'Kak';
+    
+    // Get knowledge base dari sheet
+    const knowledgeBase = getKnowledgeBaseFormatted();
+    
+    if (!knowledgeBase || knowledgeBase.trim() === '') {
+      // Jika tidak ada knowledge base, gunakan response sederhana
+      return `Maaf Kak ${customerName}, untuk saat ini data informasi belum tersedia. 😊\n\nBisa langsung order aja nih! 🛒\nhttps://feisty.my.id/order?phone=${encodeURIComponent(customer.phone)}&nama=${encodeURIComponent(customer.name)}`;
+    }
+    
+    // Gunakan AI tapi dengan pengetahuan dari sheet
+    const prompt = `Anda adalah Customer Service Feisty yang helpful.\n\nKNOWLEDGE BASE (gunakan ini untuk menjawab):\n${knowledgeBase}\n\nINSTRUKSI:\n1. Jawab berdasarkan knowledge base di atas\n2. JANGAN mengarang jawaban yang tidak ada di knowledge base\n3. Jika pertanyaan tidak ada di knowledge base, bilang bahwa info tersebut belum tersedia dan sarankan untuk memesan atau hubungi admin\n4. Berikan jawaban yang ramah dan helpful\n5. Selalu akhiri dengan menawarkan link order: https://feisty.my.id/order?phone=${encodeURIComponent(customer.phone)}&nama=${encodeURIComponent(customer.name)}\n\nPertanyaan customer: "${userMessage}"\n\nJawaban:`;
+
+    const payload = {
+      contents: [{
+        parts: [{ text: prompt }]
+      }]
+    };
+
+    const geminiKey = getAPIKey('gemini_key', '');
+    if (!geminiKey) {
+      return `Maaf Kak ${customerName}, AI sedang gangguan. Silakan langsung order aja! 😊\nhttps://feisty.my.id/order?phone=${encodeURIComponent(customer.phone)}&nama=${encodeURIComponent(customer.name)}`;
+    }
+    const url = GEMINI_API_URL + "?key=" + geminiKey;
+    const options = {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+      timeout: 20
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const result = JSON.parse(response.getContentText());
+
+    if (result.candidates && result.candidates.length > 0) {
+      const aiResponse = result.candidates[0].content.parts[0].text.trim();
+      return aiResponse.substring(0, 500);
+    }
+    
+    // Fallback jika AI gagal
+    return `Maaf Kak ${customerName}, saya belum menemukan jawaban yang tepat. 😊\n\nLangsung order aja atau hubungi admin jika ada pertanyaan lanjutan! 🙏\nhttps://feisty.my.id/order?phone=${encodeURIComponent(customer.phone)}&nama=${encodeURIComponent(customer.name)}`;
+    
+  } catch (err) {
+    logToSheet("Knowledge AI Error:", err.toString());
+    const customerName = customer?.name || 'Kak';
+    return `Maaf Kak ${customerName}, ada sedikit gangguan teknis. 😊\n\nCoba langsung order aja! 🛒\nhttps://feisty.my.id/order?phone=${encodeURIComponent(customer.phone)}&nama=${encodeURIComponent(customer.name)}`;
   }
 }
 
@@ -1404,22 +1675,63 @@ function saveNewCustomer(phone) {
     const data = sh.getDataRange().getValues();
     const normalizedPhone = normalizeNumber(phone);
     
+    // Cek apakah customer sudah ada
     for (let i = 1; i < data.length; i++) {
       const existingPhone = normalizeNumber(String(data[i][0]));
       if (existingPhone === normalizedPhone) {
+        // Customer sudah ada - reset ke WAIT_NAME jika belum punya nama
         const row = i + 1;
-        sh.getRange(row, 6).setValue(STATE_WAIT_NAME);
-        sh.getRange(row, 7).setValue(new Date());
-        sh.getRange(row, 9).setValue(new Date());
-        logToSheet("Customer updated (already exists):", phone);
+        const currentName = String(data[i][1] || '');
+        
+        // Hanya reset ke WAIT_NAME jika belum ada nama
+        if (!currentName || currentName.trim() === '') {
+          sh.getRange(row, 6).setValue(STATE_WAIT_NAME);
+          sh.getRange(row, 7).setValue(new Date());
+          sh.getRange(row, 9).setValue(new Date());
+          logToSheet("Customer reset to WAIT_NAME:", phone);
+        }
         return;
       }
     }
     
+    // Customer baru - simpan dengan nama kosong dan state WAIT_NAME
     sh.appendRow([phone, "", "", "", "", STATE_WAIT_NAME, new Date(), new Date(), new Date()]);
-    logToSheet("New customer created:", phone);
+    logToSheet("New customer created (WAIT_NAME):", phone);
   } catch (err) {
     logToSheet("ERROR saveNewCustomer:", err.toString());
+  }
+}
+
+// NEW: Save customer with name directly (used after valid name validation)
+function saveNewCustomerWithName(phone, name, state) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sh = ss.getSheetByName(CUSTOMERS_SHEET);
+    if (!sh) return;
+    
+    const data = sh.getDataRange().getValues();
+    const normalizedPhone = normalizeNumber(phone);
+    
+    // Cek apakah customer sudah ada
+    for (let i = 1; i < data.length; i++) {
+      const existingPhone = normalizeNumber(String(data[i][0]));
+      if (existingPhone === normalizedPhone) {
+        // Customer sudah ada - update nama saja
+        const row = i + 1;
+        sh.getRange(row, 2).setValue(name);
+        sh.getRange(row, 6).setValue(state || STATE_CONVERSATION);
+        sh.getRange(row, 7).setValue(new Date());
+        sh.getRange(row, 9).setValue(new Date());
+        logToSheet("Customer updated with name:", phone + " -> " + name);
+        return;
+      }
+    }
+    
+    // Customer baru - simpan dengan nama
+    sh.appendRow([phone, name, "", "", "", state || STATE_CONVERSATION, new Date(), new Date(), new Date()]);
+    logToSheet("New customer created with name:", phone + " -> " + name);
+  } catch (err) {
+    logToSheet("ERROR saveNewCustomerWithName:", err.toString());
   }
 }
 
