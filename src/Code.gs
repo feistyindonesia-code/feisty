@@ -134,6 +134,7 @@ function setupSheets() {
     sh.appendRow(['midtrans_key', '', new Date()]);
     sh.appendRow(['stripe_key', '', new Date()]);
     sh.appendRow(['ipaymu_key', '', new Date()]);
+    sh.appendRow(['ipaymu_va', '', new Date()]);
     sh.appendRow(['qris_api_key', '', new Date()]);
     sh.appendRow(['enable_cod', 'true', new Date()]);
     sh.appendRow(['enable_qris', 'false', new Date()]);
@@ -421,7 +422,11 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // Handle normal WA messages
+    // iPaymu payment
+    if (body.action === 'createPayment') {
+      const result = createIPaymuPayment(body.order_id, body.amount, body.customer_name, body.customer_phone);
+      return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+    }
     const phone = body.number || body.from || body.sender || "";
     const text = (body.message || body.body || body.text || "").trim();
     
@@ -500,25 +505,25 @@ function handleIncomingWA(phone, text) {
         saveNewCustomerWithName(phone, name, STATE_CONVERSATION);
         
         const welcomeMessages = [
-          `Woiyee Kak ${name}! 🎉\n\nWelcome to Feisty Family! 🎊\n\nYuk langsung gas order! Klik di bawah:\n\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\natau ketik *menu* untuk lihat menu!`,
-          `Haiii Kak ${name}! ✨\n\nAkhirnya kenal juga! Mau pesan apa? 🍔🍕\n\nLangsung order aja:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nKetik *menu* untuk lihat pilihan lain!`,
-          `Wkwk welcome Kak ${name}! 🎊\n\nSiap-siap ketagihan sama makanan Feisty! 😋\n\nGas order donk:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\natau ketik *menu*!`,
-          `Yo Kak ${name}! 🙌\n\nFeisty tunggu orderan kamu! Mau yang pedes, gurih, atau manis? Semua ada! 🍳\n\nOrder sekarang:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nKetik *menu*!`
+          `Terima kasih Kak ${name}! 🙏\n\nSelamat datang di Feisty! 🎉\n\nSilakan klik link di bawah untuk memesan:\n\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\natau ketik *menu* untuk lihat menu!`,
+          `Halo Kak ${name}! ✨\n\nSelamat datang di Feisty!\n\nMau pesan apa hari ini? 🍔🍕\n\nLangsung order aja:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nKetik *menu* untuk lihat pilihan lain!`,
+          `Welcome Kak ${name}! 🎊\n\nSiap-siap menikmati makanan Feisty! 😋\n\nGas order donk:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\natau ketik *menu*!`,
+          `Hai Kak ${name}! 🙌\n\nFeisty tunggu orderan Anda! Mau yang pedes, gurih, atau manis? Semua ada! 🍳\n\nOrder sekarang:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nKetik *menu*!`
         ];
         const randomWelcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
         sendWA(phone, randomWelcome);
         return;
       }
       
-      // Jika bukan nama yang valid → tetap minta nama dengan pesan fun
+      // Jika bukan nama yang valid → tetap minta nama dengan pesan yang jelas
       // Tapi JANGAN simpan customer dulu
       logToSheet("First message NOT valid name, rejecting:", input);
       
       const rejectionMessages = [
-        `Wkwk Kak, "${input}" kok kayak bukan nama ya? 😅\n\nMau donk ksh tau nama aslinya biar bisa langsung order! 🎯`,
-        `Haha Kak, "${input}" bukan nama yang valid nih. 😂\n\nTulis dong nama lengkap atau nama panggilan Kakak!`,
-        `Woy Kak "${input}" itu apaan? 😆\n\nNama nya aja dulu dong, biar kita bisa lanjut ke menu yummy! 🍕`,
-        `Ketawa Saya Kak, "${input}" kok kayak chat biasa ya. 😅\n\nMau pesan apa? Tulis nama dulu dong!`
+        `Mohon maaf, Anda tidak memasukkan nama yang valid. 😅\n\nSilahlan masukkan nama Anda untuk melanjutkan pemesanan! 🙏`,
+        `Maaf Kak, saya tidak menerima nama tersebut. 😅\n\nTuliskan nama lengkap atau nama panggilan Anda agar bisa melanjutkan!`,
+        `Tidak dapat membaca nama Anda. 😅\n\nMohon masukkan nama yang valid untuk melanjutkan!`,
+        `Anda belum memasukkan nama yang benar. 😅\n\nSilahlan ketik nama Anda agar kami bisa membantu!`
       ];
       const randomMsg = rejectionMessages[Math.floor(Math.random() * rejectionMessages.length)];
       sendWA(phone, randomMsg);
@@ -590,25 +595,25 @@ function handleWaitName(phone, text, customer) {
     logToSheet("WAIT_NAME REJECTED:", input + " | Reason: " + validation.reason);
     // Tetap di WAIT_NAME - jangan ubah state atau simpan data
     
-  // Respons lebih fun dan varied
+  // Respons yang jelas dan informatif
     const rejectionMessages = [
-      `Wkwk Kak, "${input}" kok kayak bukan nama ya? 😅\n\nMau donk ksh tau nama aslinya biar bisa langsung order! 🎯`,
-      `Haha Kak, "${input}" bukan nama yang valid nih. 😂\n\nTulis dong nama lengkap atau nama panggilan Kakak!`,
-      `Woy Kak "${input}" itu apaan? 😆\n\nNama nya aja dulu dong, biar kita bisa lanjut ke menu yummy! 🍕`,
-      `Ketawa Saya Kak, "${input}" kok kayak chat biasa ya. 😅\n\nMau pesan apa? Tulis nama dulu dong!`
+      `Mohon maaf, Anda tidak memasukkan nama yang valid. 😅\n\nSilahlan masukkan nama Anda untuk melanjutkan pemesanan! 🙏`,
+      `Maaf Kak, saya tidak menerima nama tersebut. 😅\n\nTuliskan nama lengkap atau nama panggilan Anda agar bisa melanjutkan!`,
+      `Tidak dapat membaca nama Anda. 😅\n\nMohon masukkan nama yang valid untuk melanjutkan!`,
+      `Anda belum memasukkan nama yang benar. 😅\n\nSilahlan ketik nama Anda agar kami bisa membantu!`
     ];
     const randomMsg = rejectionMessages[Math.floor(Math.random() * rejectionMessages.length)];
     sendWA(phone, randomMsg);
     return;
   }
   
-  // JIKA CONFIDENCE RENDAH → TOLAK DENGAN PESAN FUN
+  // JIKA CONFIDENCE RENDAH → TOLAK DENGAN PESAN YANG JELAS
   if (validation.confidence < 0.7) {
     logToSheet("WAIT_NAME LOW CONFIDENCE:", input + " | conf: " + validation.confidence);
     
     const lowConfMessages = [
-      `Hmm Kak "${input}" kayaknya masih belum pas nih. 🤔\n\nCoba tulis nama lengkap atau nama panggilan yang lebih jelas donk!`,
-      `Wkwk kurang jelas nih Kak, "${input}" itu siapa? 😆\n\nTulis nama aslinya dong biar Feisty tau siapa yang lagi chat!`
+      `Mohon maaf, nama "${input}" tidak dapat diverifikasi. 🤔\n\nCoba tulis nama lengkap atau nama panggilan yang lebih jelas!`,
+      `Maaf Kak, nama "${input}" tidak teridentifikasi dengan jelas. 😅\n\nTulis nama asli Anda agar kami dapat melanjutkan!`
     ];
     const randomMsg = lowConfMessages[Math.floor(Math.random() * lowConfMessages.length)];
     sendWA(phone, randomMsg);
@@ -635,15 +640,15 @@ function handleWaitName(phone, text, customer) {
   
   logToSheet("WAIT_NAME ACCEPTED - Customer registered:", name + " | conf: " + validation.confidence);
   
-  // Respons welcome yang lebih fun dan menuju ke order
+  // Respons welcome yang sopan dan jelas
   const welcomeMessages = [
-    `Woiyee Kak ${name}! 🎉\n\nWelcome to Feisty Family! 🎊\n\nSekarang kita siap mulai petualangan kuliner! Mau makan apa hari ini? 😋\n\nKlik link ini untuk order:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nAtau ketik *menu* untuk melihat pilihan lain!`,
+    `Terima kasih Kak ${name}! 🙏\n\nSelamat datang di Feisty! 🎉\n\nKami siap menerima pesan Anda. Silakan klik link di bawah untuk memesan:\n\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nAtau ketik *menu* untuk melihat pilihan lain!`,
     
-    `Haiii Kak ${name}! ✨\n\nAkhirnya kenal juga! Nah sekarang mau coba apa? 🍔🍕\n\nFeisty punya menu-menu kece yang wajib dicoba! Langsung order aja:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nKetik *menu* untuk lihat pilihan lain ya!`,
+    `Halo Kak ${name}! 👋\n\nSelamat datang di Feisty!✨\n\nSilakan pilih menu makanan favorit Anda:\n\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nKetik *menu* untuk melihat daftar menu lengkap!`,
     
-    `Wkwk welcome Kak ${name}! 🎊\n\nSiap-siap ketagihan sama makanan Feisty! 😋\n\nLangsung gas order donk, klik di bawah:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\natau ketik *menu* untuk layanan lainnya!`,
+    `Welcome Kak ${name}! 🎊\n\nTerima kasih telah bergabung dengan Feisty! 😋\n\nSilakan memesan melalui link berikut:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nAtau ketik *menu* untuk layanan lainnya!`,
     
-    `Yo Kak ${name}! 🙌\n\nFeisty tunggu orderan kamu nih! Mau yang pedes, gurih, atau manis-manis? Semua ada! 🍳\n\nOrder sekarang:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nKetik *menu* untuk melihat pilihan layanan!`
+    `Hai Kak ${name}! 🙌\n\nSelamat datang di Feisty!\n\nMau pesan apa hari ini? Semua menu tersedia untuk Anda! 🍳\n\nOrder sekarang:\n➡️ https://feisty.my.id/order?phone=${encodeURIComponent(phone)}&nama=${encodeURIComponent(name)}\n\nKetik *menu* untuk melihat pilihan layanan!`
   ];
   const randomWelcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
   sendWA(phone, randomWelcome);
@@ -2154,6 +2159,85 @@ function flattenObject(prefix, obj) {
     }
   }
   return result;
+}
+
+// ==================================================
+// IPAYMU PAYMENT INTEGRATION
+// ==================================================
+function createIPaymuPayment(orderId, amount, customerName, customerPhone) {
+  try {
+    // Get iPaymu credentials from CONFIG sheet
+    const ipaymuKey = getAPIKey('ipaymu_key', '');
+    const ipaymuVa = getAPIKey('ipaymu_va', '');
+    
+    if (!ipaymuKey || !ipaymuVa) {
+      Logger.log('iPaymu not configured - Key: ' + ipaymuKey + ', VA: ' + ipaymuVa);
+      return { success: false, error: 'iPaymu not configured' };
+    }
+
+    // Determine if sandbox or production
+    const isSandbox = ipaymuKey.toLowerCase().includes('sandbox') || ipaymuKey.length < 30;
+    const baseUrl = isSandbox ? 'https://sandbox.ipaymu.com' : 'https://my.ipaymu.com';
+    
+    // Prepare payment request
+    const timestamp = Math.floor(Date.now() / 1000);
+    const referenceId = 'ORD-' + orderId + '-' + timestamp;
+    
+    const payload = {
+      product: ['Feisty Order ' + orderId],
+      qty: [1],
+      price: [Number(amount)],
+      weight: [1],
+      length: [1],
+      width: [1],
+      height: [1],
+      name: [customerName || 'Pelanggan'],
+      phone: [sanitizePhoneNumber(customerPhone)],
+      referenceId: referenceId,
+      paymentMethod: 'VA',
+      paymentChannel: 'BCA' // Default BCA, can be changed
+    };
+
+    // Generate signature
+    const stringToSign = 'POST:' + baseUrl + '/api/v2/payment' + ':' + ipaymuKey + ':' + JSON.stringify(payload) + ':' + timestamp;
+    const signature = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, stringToSign));
+
+    const options = {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + ipaymuKey,
+        'X-Timestamp': timestamp.toString(),
+        'X-Signature': signature,
+        'X-Client-Key': ipaymuKey
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(baseUrl + '/api/v2/payment', options);
+    const result = JSON.parse(response.getContentText());
+
+    if (result.Success) {
+      Logger.log('iPaymu payment created: ' + orderId);
+      return {
+        success: true,
+        payment_url: result.Data.PaymentUrl,
+        va_number: result.Data.VirtualAccount,
+        reference_id: referenceId,
+        order_id: orderId
+      };
+    } else {
+      Logger.log('iPaymu error: ' + JSON.stringify(result));
+      return {
+        success: false,
+        error: result.Message || 'Payment creation failed'
+      };
+    }
+  } catch (err) {
+    Logger.log('iPaymu exception: ' + err.toString());
+    return { success: false, error: err.toString() };
+  }
 }
 
 // ==================================================
