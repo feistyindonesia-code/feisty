@@ -2177,14 +2177,99 @@ function createIPaymuPayment(orderId, amount, customerName, customerPhone) {
     
     if (!ipaymuKey || !ipaymuVa) {
       Logger.log('iPaymu not configured - Key: ' + ipaymuKey + ', VA: ' + ipaymuVa);
-      return { success: false, error: 'iPaymu not configured' };
+      return { success: false, error: 'iPaymu not configured. Please set ipaymu_key and ipaymu_va in CONFIG sheet.' };
     }
 
-    // Determine if sandbox or production
+    // Determine if sandbox or production based on key
+    // Sandbox keys typically contain 'sandbox' or are shorter
     const isSandbox = ipaymuKey.toLowerCase().includes('sandbox') || ipaymuKey.length < 30;
     const baseUrl = isSandbox ? 'https://sandbox.ipaymu.com' : 'https://my.ipaymu.com';
     
-    // Prepare payment request
+    // Prepare payment request - COD (Cash on Delivery)
+    const timestamp = Math.floor(Date.now() / 1000);
+    const referenceId = 'ORD-' + orderId + '-' + timestamp;
+    
+    const payload = {
+      product: ['Feisty Order ' + orderId],
+      qty: [1],
+      price: [Number(amount)],
+      weight: [1],
+      length: [1],
+      width: [1],
+      height: [1],
+      name: [customerName || 'Pelanggan'],
+      phone: [sanitizePhoneNumber(customerPhone)],
+      referenceId: referenceId,
+      paymentMethod: 'COD', // COD - Cash on Delivery
+      paymentChannel: '' // Will be assigned by iPaymu
+    };
+
+    // Generate signature for iPaymu v2 API
+    // Signature = SHA256(va + method + product + qty + price + name + phone + referenceId + timestamp)
+    const productStr = payload.product.join(',');
+    const qtyStr = payload.qty.join(',');
+    const priceStr = payload.price.join(',');
+    const nameStr = payload.name.join(',');
+    const phoneStr = payload.phone.join(',');
+    
+    const signatureString = ipaymuVa + 'COD' + productStr + qtyStr + priceStr + nameStr + phoneStr + referenceId + timestamp;
+    const signature = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, signatureString));
+
+    const options = {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'va': ipaymuVa,
+        'signature': signature,
+        'timestamp': timestamp.toString()
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(baseUrl + '/api/v2/payment', options);
+    const result = JSON.parse(response.getContentText());
+
+    Logger.log('iPaymu response: ' + JSON.stringify(result));
+    
+    if (result.Success) {
+      Logger.log('iPaymu payment created: ' + orderId);
+      return {
+        success: true,
+        payment_url: result.Data.PaymentUrl || '',
+        payment_code: result.Data.PaymentCode || '',
+        reference_id: referenceId,
+        order_id: orderId,
+        amount: amount,
+        message: 'COD order created. Admin will contact you for delivery confirmation.'
+      };
+    } else {
+      Logger.log('iPaymu error: ' + JSON.stringify(result));
+      return {
+        success: false,
+        error: result.Message || 'Payment creation failed'
+      };
+    }
+  } catch (err) {
+    Logger.log('iPaymu exception: ' + err.toString());
+    return { success: false, error: err.toString() };
+  }
+}
+
+// Alternative: Create VA payment (if COD not working)
+function createIPaymuVAPayment(orderId, amount, customerName, customerPhone) {
+  try {
+    const ipaymuKey = getAPIKey('ipaymu_key', '');
+    const ipaymuVa = getAPIKey('ipaymu_va', '');
+    
+    if (!ipaymuKey || !ipaymuVa) {
+      return { success: false, error: 'iPaymu not configured' };
+    }
+
+    const isSandbox = ipaymuKey.toLowerCase().includes('sandbox') || ipaymuKey.length < 30;
+    const baseUrl = isSandbox ? 'https://sandbox.ipaymu.com' : 'https://my.ipaymu.com';
+    
     const timestamp = Math.floor(Date.now() / 1000);
     const referenceId = 'ORD-' + orderId + '-' + timestamp;
     
@@ -2200,21 +2285,26 @@ function createIPaymuPayment(orderId, amount, customerName, customerPhone) {
       phone: [sanitizePhoneNumber(customerPhone)],
       referenceId: referenceId,
       paymentMethod: 'VA',
-      paymentChannel: 'BCA' // Default BCA, can be changed
+      paymentChannel: 'BCA'
     };
 
-    // Generate signature
-    const stringToSign = 'POST:' + baseUrl + '/api/v2/payment' + ':' + ipaymuKey + ':' + JSON.stringify(payload) + ':' + timestamp;
-    const signature = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, stringToSign));
+    const productStr = payload.product.join(',');
+    const qtyStr = payload.qty.join(',');
+    const priceStr = payload.price.join(',');
+    const nameStr = payload.name.join(',');
+    const phoneStr = payload.phone.join(',');
+    
+    const signatureString = ipaymuVa + 'VA' + productStr + qtyStr + priceStr + nameStr + phoneStr + referenceId + timestamp;
+    const signature = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, signatureString));
 
     const options = {
       method: 'post',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + ipaymuKey,
-        'X-Timestamp': timestamp.toString(),
-        'X-Signature': signature,
-        'X-Client-Key': ipaymuKey
+        'Accept': 'application/json',
+        'va': ipaymuVa,
+        'signature': signature,
+        'timestamp': timestamp.toString()
       },
       payload: JSON.stringify(payload),
       muteHttpExceptions: true
@@ -2224,23 +2314,20 @@ function createIPaymuPayment(orderId, amount, customerName, customerPhone) {
     const result = JSON.parse(response.getContentText());
 
     if (result.Success) {
-      Logger.log('iPaymu payment created: ' + orderId);
       return {
         success: true,
-        payment_url: result.Data.PaymentUrl,
-        va_number: result.Data.VirtualAccount,
+        payment_url: result.Data.PaymentUrl || '',
+        va_number: result.Data.VirtualAccount || '',
         reference_id: referenceId,
         order_id: orderId
       };
     } else {
-      Logger.log('iPaymu error: ' + JSON.stringify(result));
       return {
         success: false,
         error: result.Message || 'Payment creation failed'
       };
     }
   } catch (err) {
-    Logger.log('iPaymu exception: ' + err.toString());
     return { success: false, error: err.toString() };
   }
 }
